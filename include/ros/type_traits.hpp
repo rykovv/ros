@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ros/literals.hpp>
+#include <ros/operations.hpp>
 
 namespace ros {
 // field type traits

@@ -28,8 +28,8 @@ template <typename Register> struct safe_register_operations_handler {
 
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
-    constexpr auto
-    operator=(U const &rhs) const -> register_assignment_rt<Register> {
+    constexpr auto operator=(U const &rhs) const
+        -> register_assignment_rt<Register> {
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<U>::digits,
                       "Unsafe assignment. Assigned value type is too wide.");
@@ -46,8 +46,8 @@ template <typename Register> struct safe_register_operations_handler {
 
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
-    constexpr auto
-    operator=(U &&rhs) const -> register_assignment_rt<Register> {
+    constexpr auto operator=(U &&rhs) const
+        -> register_assignment_rt<Register> {
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<U>::digits,
                       "Unsafe assignment. Assigned value type is too wide.");
@@ -86,15 +86,15 @@ template <typename Register> struct safe_register_operations_handler {
 template <typename Register> struct unsafe_register_operations_handler {
     using value_type = typename Register::value_type;
 
-    constexpr auto
-    operator=(auto const &rhs) const -> register_assignment_rt<Register> {
+    constexpr auto operator=(auto const &rhs) const
+        -> register_assignment_rt<Register> {
         // safe static_case because assignment overload checked type and width
         // validity
         return register_assignment_rt<Register>{static_cast<value_type>(rhs)};
     }
 
-    constexpr auto
-    operator=(auto &&rhs) const -> register_assignment_rt<Register> {
+    constexpr auto operator=(auto &&rhs) const
+        -> register_assignment_rt<Register> {
         // safe static_case because assignment overload checked type and width
         // validity
         return register_assignment_rt<Register>{static_cast<value_type>(rhs)};
@@ -180,9 +180,75 @@ struct reg {
     constexpr static bool has_wo_field = detail::check_wo_fields(reg_der{});
     constexpr static bool has_ro_field = detail::check_ro_fields(reg_der{});
 
+    constexpr auto read() const -> detail::register_read<reg> {
+        return detail::register_read<reg>{};
+    }
+
+    template <typename U, U val>
+        requires(std::is_convertible_v<U, value_type>)
+    constexpr auto operator=(detail::register_value<U, val>) const
+        -> detail::register_assignment_ct<reg, val> const {
+        static_assert(static_cast<value_type>(val & ~reg::layout) == 0,
+                      "Attempt to assign read-only bits");
+        return detail::register_assignment_ct<reg, val>{};
+    }
+
+    template <typename U>
+        requires std::integral<U> && std::is_convertible_v<U, value_type>
+    constexpr auto operator=(U const &rhs) const
+        -> detail::register_assignment_rt<reg> {
+        static_assert(std::numeric_limits<value_type>::digits >=
+                          std::numeric_limits<U>::digits,
+                      "Unsafe assignment. Assigned value type is too wide.");
+
+        value_type value;
+        if (rhs & ~reg::layout) {
+            value = error::handle_register_error<reg>(rhs);
+        } else {
+            value = rhs;
+        }
+
+        return detail::register_assignment_rt<reg>{value};
+    }
+
+    template <typename U>
+        requires std::integral<U> && std::is_convertible_v<U, value_type>
+    constexpr auto operator=(U &&rhs) const
+        -> detail::register_assignment_rt<reg> {
+        static_assert(std::numeric_limits<value_type>::digits >=
+                          std::numeric_limits<U>::digits,
+                      "Unsafe assignment. Assigned value type is too wide.");
+
+        value_type value;
+        if (rhs & ~reg::layout) {
+            value = error::handle_register_error<reg>(rhs);
+        } else {
+            value = rhs;
+        }
+
+        return detail::register_assignment_rt<reg>{value};
+    }
+
+    constexpr auto operator()(std::invocable<value_type> auto f) const
+        -> detail::register_assignment_invocable<decltype(f), reg, reg> {
+        return detail::register_assignment_invocable<decltype(f), reg, reg>{f};
+    }
+
+    template <typename F, typename RegOpsHandlerT0, typename... RegOpsHandlerTs>
+        requires std::invocable<F, typename RegOpsHandlerT0::reg::value_type,
+                                typename RegOpsHandlerTs::reg::value_type...>
+    constexpr auto operator()(F f, RegOpsHandlerT0 rh0,
+                              RegOpsHandlerTs... rhs) const
+        -> detail::register_assignment_invocable<
+            F, reg, typename RegOpsHandlerT0::reg,
+            typename RegOpsHandlerTs::reg...> {
+        return detail::register_assignment_invocable<
+            F, reg, typename RegOpsHandlerT0::reg,
+            typename RegOpsHandlerTs::reg...>{f};
+    }
+
     constexpr static ros::detail::unsafe_register_operations_handler<reg>
         unsafe{};
-    constexpr static ros::detail::safe_register_operations_handler<reg> self{};
 };
 
 namespace detail {

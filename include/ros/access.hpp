@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <tuple>
+
 namespace ros {
-enum class access_type : uint8_t {
+enum class access_type : std::uint8_t {
     NA = 0b000'00000,
     RO = 0b000'00001,
     WO = 0b000'00010,

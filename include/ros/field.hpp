@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ros/concepts.hpp>
+#include <ros/error.hpp>
 #include <ros/literals.hpp>
 #include <ros/operations.hpp>
 
@@ -12,8 +13,8 @@ namespace detail {
 template <typename Field> struct unsafe_field_operations_handler {
     using value_type = typename Field::value_type;
 
-    constexpr auto
-    operator=(auto const &rhs) const -> field_assignment_rt<Field> {
+    constexpr auto operator=(auto const &rhs) const
+        -> field_assignment_rt<Field> {
         static_assert(Field::access != access_type::RO,
                       "cannot write read-only field");
         // safe static_case because assignment overload checked type and width
@@ -110,8 +111,8 @@ struct field {
         requires(std::unsigned_integral<T> &&
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
-    constexpr auto
-    operator=(T const &rhs) const -> detail::field_assignment_rt<field> {
+    constexpr auto operator=(T const &rhs) const
+        -> detail::field_assignment_rt<field> {
         static_assert((static_cast<value_type_r>(access) &
                        static_cast<value_type_r>(access_type::W)) != 0,
                       "Cannot write non-writable field");
@@ -126,8 +127,8 @@ struct field {
         requires(std::unsigned_integral<T> &&
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
-    constexpr auto
-    operator=(T &&rhs) const -> detail::field_assignment_rt<field> {
+    constexpr auto operator=(T &&rhs) const
+        -> detail::field_assignment_rt<field> {
         static_assert((static_cast<value_type_r>(access) &
                        static_cast<value_type_r>(access_type::W)) != 0,
                       "Cannot write non-writable field");
@@ -140,8 +141,8 @@ struct field {
 
     template <typename EnumT>
         requires(std::is_enum_v<EnumT>)
-    constexpr auto
-    operator=(EnumT val) const -> detail::field_assignment_rt<field> {
+    constexpr auto operator=(EnumT val) const
+        -> detail::field_assignment_rt<field> {
         static_assert((static_cast<value_type_r>(access) &
                        static_cast<value_type_r>(access_type::W)) != 0,
                       "Cannot write non-writable field");
