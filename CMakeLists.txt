@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(ros
-	VERSION 0.0.1
+	VERSION 0.1.0
 	LANGUAGES CXX
 	DESCRIPTION
 	    "A header-only C++ library that provides safe 
