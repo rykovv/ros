@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ros/access.hpp>
 #include <ros/concepts.hpp>
 #include <ros/error.hpp>
 #include <ros/literals.hpp>
@@ -47,7 +48,7 @@ struct field {
     constexpr static access_type access = at;
 
     constexpr static uint8_t length = []() {
-        return msb.value == lsb.value ? 1 : msb.value - lsb.value;
+        return msb.value == lsb.value ? 1 : msb.value - lsb.value + 1;
     }();
 
     constexpr static value_type_r mask = []() {
@@ -55,7 +56,7 @@ struct field {
             if (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
                 return ~((1u << lsb.value) - 1);
             } else {
-                return ((1u << msb.value) - 1) & ~((1u << lsb.value) - 1);
+                return ((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1);
             }
         } else {
             return 1u << msb.value;

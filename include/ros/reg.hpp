@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ros/access.hpp>
 #include <ros/concepts.hpp>
 #include <ros/error.hpp>
 #include <ros/literals.hpp>
