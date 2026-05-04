@@ -9,7 +9,9 @@ project(ros
 
 add_library(ros INTERFACE)
 
-target_compile_features(ros INTERFACE cxx_std_23)
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 23)
+endif()
 
 target_sources(
 	ros
