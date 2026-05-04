@@ -37,7 +37,7 @@ target_sources(
 if(PROJECT_IS_TOP_LEVEL)
     # add_docs(docs)
     # clang_tidy_interface(ros)
-    # add_subdirectory(test)
+    add_subdirectory(test)
 else()
     add_subdirectory(include)
 endif()
