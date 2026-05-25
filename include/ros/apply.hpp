@@ -120,9 +120,6 @@ evaluate_invocable_assignments_helper(std::tuple<InvocableWrites...> writes,
 template <typename... InvocableWrites>
 constexpr void
 evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
-    constexpr bool ro_write_attempt =
-        (InvocableWrites::type::has_ro_field or ...);
-    static_assert(not ro_write_attempt, "Attemp to write read-only register");
     evaluate_invocable_assignments_helper(
         writes, std::make_index_sequence<sizeof...(InvocableWrites)>{});
 }
@@ -165,16 +162,11 @@ auto apply(Op op, Ops... ops)
         write_mask_ct | write_mask_rt | write_mask_inv;
 
     if constexpr (write_mask != 0) {
-        static_assert(not reg::has_ro_field,
-                      "Attempt to write non-writable register");
-
         constexpr bool is_partial_write = ((rmw_mask & write_mask) != rmw_mask);
         constexpr bool has_invocable_writes =
             std::tuple_size_v<decltype(writes_inv)> > 0;
 
         if constexpr (is_partial_write || has_invocable_writes) {
-            static_assert(not reg::has_wo_field,
-                          "Attempt to read non-readable register");
             value = bus::template read<value_type>(reg::address::value);
         }
 
@@ -250,10 +242,6 @@ auto apply(Op op, Ops... ops)
     //   value will be returned
 
     auto evaluate_reads = []<typename... Rs>(std::tuple<Rs...>) /* -> ... */ {
-        constexpr bool wo_read_attempt = (Rs::type::has_wo_field or ...);
-        static_assert(not wo_read_attempt,
-                      "Attemp to read non-readable register");
-
         return std::make_tuple(
             Rs::type::bus::template read<typename Rs::type::value_type>(
                 Rs::type::address::value)...);
@@ -272,20 +260,12 @@ auto apply(Op op, Ops... ops)
 
     if constexpr (has_writes_ct) {
         []<typename... Ws>(std::tuple<Ws...>) -> void {
-            constexpr bool ro_write_attempt = (Ws::type::has_ro_field or ...);
-            static_assert(not ro_write_attempt,
-                          "Attemp to write non-writable register");
-
             (Ws::type::bus::write(Ws::value, Ws::type::address::value), ...);
         }(writes_ct);
     }
 
     if constexpr (has_writes_rt) {
         []<typename... Ws>(std::tuple<Ws...> ws) -> void {
-            constexpr bool ro_write_attempt = (Ws::type::has_ro_field or ...);
-            static_assert(not ro_write_attempt,
-                          "Attemp to write non-writable register");
-
             (Ws::type::bus::write(std::get<Ws>(ws).value,
                                   Ws::type::address::value),
              ...);

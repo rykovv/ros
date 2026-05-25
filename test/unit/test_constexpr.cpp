@@ -45,13 +45,6 @@ TEST(Constexpr, RegLayout) {
     static_assert(full_reg::layout == 0xFFFFFFFF);
 }
 
-TEST(Constexpr, RegProperties) {
-    static_assert(!simple_reg::has_wo_field);
-    static_assert(!simple_reg::has_ro_field);
-    static_assert(mixed_reg::has_wo_field);
-    static_assert(mixed_reg::has_ro_field);
-}
-
 TEST(Constexpr, LiteralValues) {
     constexpr auto fv = 42_f;
     static_assert(fv.value == 42);

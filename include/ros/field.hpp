@@ -18,16 +18,14 @@ template <typename Field> struct unsafe_field_operations_handler {
         -> field_assignment_rt<Field> {
         static_assert(Field::access != access_type::RO,
                       "cannot write read-only field");
-        // safe static_case because assignment overload checked type and width
-        // validity
+
         return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
     }
 
     constexpr auto operator=(auto &&rhs) const -> field_assignment_rt<Field> {
         static_assert(Field::access != access_type::RO,
                       "cannot write read-only field");
-        // safe static_case because assignment overload checked type and width
-        // validity
+
         return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
     }
 
@@ -53,7 +51,7 @@ struct field {
 
     constexpr static value_type_r mask = []() {
         if (msb.value != lsb.value) {
-            if (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
+            if constexpr (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
                 return ~((1u << lsb.value) - 1);
             } else {
                 return ((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1);
@@ -63,15 +61,41 @@ struct field {
         }
     }();
 
+    constexpr static value_type_r rmw_mask = []() {
+        if constexpr (at == access_type::RW) {
+            return mask;
+        } else {
+            return 0;
+        };
+    }();
+
+     constexpr static value_type_r write_mask = []() {
+        if constexpr (at == access_type::WO || at == access_type::RW ||
+                      at == access_type::RW_0C || at == access_type::RW_1C ||
+                      at == access_type::RW_0S || at == access_type::RW_1S ||
+                      at == access_type::RW_1T || at == access_type::RW_O) {
+            return mask;
+        } else {
+            return 0;
+        }
+    }();
+
+     constexpr static value_type_r read_mask = []() {
+        if constexpr (at == access_type::RO || at == access_type::RW ||
+                      at == access_type::RC || at == access_type::RS) {
+            return mask;
+        } else {
+            return 0;
+        }
+    }();
+
     constexpr field() = default;
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
     constexpr auto operator=(detail::field_value<U, val>) const
         -> detail::field_assignment_ct<field, val> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::W)) != 0,
-                      "Cannot write non-writable field");
+        static_assert(writable(), "Cannot write non-writable field");
         static_assert(val <= (mask >> lsb.value),
                       "Assigned value greater than the field length");
 
@@ -114,9 +138,7 @@ struct field {
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
     constexpr auto operator=(T const &rhs) const
         -> detail::field_assignment_rt<field> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::W)) != 0,
-                      "Cannot write non-writable field");
+        static_assert(writable(), "Cannot write non-writable field");
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<T>::digits,
                       "Assigned value type is wider than the base field type");
@@ -130,9 +152,7 @@ struct field {
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
     constexpr auto operator=(T &&rhs) const
         -> detail::field_assignment_rt<field> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::W)) != 0,
-                      "Cannot write non-writable field");
+        static_assert(writable(), "Cannot write non-writable field");
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<T>::digits,
                       "Assigned value type is wider than the base field type");
@@ -144,9 +164,7 @@ struct field {
         requires(std::is_enum_v<EnumT>)
     constexpr auto operator=(EnumT val) const
         -> detail::field_assignment_rt<field> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::W)) != 0,
-                      "Cannot write non-writable field");
+        static_assert(writable(), "Cannot write non-writable field");
         static_assert(
             std::numeric_limits<value_type_r>::digits >=
                 std::numeric_limits<std::underlying_type_t<EnumT>>::digits,
@@ -156,19 +174,14 @@ struct field {
     }
 
     constexpr auto read() const -> detail::field_read<field> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::R)) != 0,
-                      "Cannot read non-readable field");
+        static_assert(readable(), "Cannot read non-readable field");
 
         return detail::field_read<field>{};
     }
 
     constexpr auto operator()(std::invocable<value_type> auto f) const
         -> detail::field_assignment_invocable<decltype(f), field, field> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::RW)) ==
-                          static_cast<value_type_r>(access_type::RW),
-                      "Invocable write requires RW field access_type");
+        static_assert(readwritable(), "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<decltype(f), field, field>{f};
     }
@@ -178,10 +191,7 @@ struct field {
                                 typename Fields::value_type...>
     constexpr auto operator()(F f, Field0 f0, Fields... fs) const
         -> detail::field_assignment_invocable<F, field, Field0, Fields...> {
-        static_assert((static_cast<value_type_r>(access) &
-                       static_cast<value_type_r>(access_type::RW)) ==
-                          static_cast<value_type_r>(access_type::RW),
-                      "Invocable write requires RW field access_type");
+        static_assert(readwritable(), "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<F, field, Field0, Fields...>{
             f};
@@ -198,6 +208,8 @@ struct field {
     }
 
     constexpr static value_type runtime_check(value_type value) {
+        static_assert(writable(), "Cannot write non-writable field");
+        
         value_type safe_val;
         if (static_cast<value_type_r>(value) <= mask >> lsb.value) {
             safe_val = value;
@@ -206,6 +218,40 @@ struct field {
         }
 
         return safe_val;
+    }
+
+    constexpr static bool writable() {
+        return (std::to_underlying(access) &
+                std::to_underlying(access_type::W)) != 0;
+    }
+
+    constexpr static bool readable() {
+        return (std::to_underlying(access) &
+                std::to_underlying(access_type::R)) != 0;
+    }
+
+    constexpr static bool readwritable() {
+        return writable() && readable();
+    }
+    
+    constexpr static bool writeonly() {
+        return writable() && not readable();
+    }
+
+    constexpr static bool readonly() {
+        return not writable() && readable();
+    }
+
+    constexpr static value_type_r identity() {
+        if constexpr (access == access_type::RW_0C || access == access_type::RW_0S) {
+            return mask;
+        } else {
+            /* access == access_type::RW    ||
+               access == access_type::RW_1C ||
+               access == access_type::RW_1S ||
+               access == access_type::RW_1T */
+            return 0;
+        }
     }
 
     constexpr static detail::unsafe_field_operations_handler<field> unsafe{};
