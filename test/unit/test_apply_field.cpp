@@ -159,17 +159,17 @@ TEST_F(ApplyFieldTest, EnumAssignment) {
     constexpr enum_reg r{};
     bus_read_value = 0x00;
 
-    apply(r.mode_field = mode::HIGH);
+    apply(r.mode_field = enum_reg::mode::HIGH);
 
     ASSERT_EQ(bus_log.size(), 2u); // partial write → RMW
-    EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(mode::HIGH));
+    EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(enum_reg::mode::HIGH));
 }
 
 TEST_F(ApplyFieldTest, EnumAssignment_PreservesOtherFields) {
     constexpr enum_reg r{};
     bus_read_value = 0xFC; // data field = 0x3F
 
-    apply(r.mode_field = mode::TURBO);
+    apply(r.mode_field = enum_reg::mode::TURBO);
 
     ASSERT_EQ(bus_log.size(), 2u);
     // mode_field [1:0] = 3, data [7:2] preserved = 0xFC

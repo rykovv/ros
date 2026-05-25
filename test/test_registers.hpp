@@ -75,12 +75,12 @@ struct special_reg : reg<special_reg, uint32_t, 0x70_addr, mock_bus> {
 };
 
 // Enum for field assignment testing
-enum class mode : uint8_t { OFF = 0, LOW = 1, HIGH = 2, TURBO = 3 };
-
 struct enum_reg : reg<enum_reg, uint8_t, 0x80_addr, mock_bus> {
     using reg<enum_reg, uint8_t, 0x80_addr, mock_bus>::operator=;
 
-    field<enum_reg, 1_msb, 0_lsb, access_type::RW> mode_field;
+    enum class mode : uint8_t { OFF = 0, LOW = 1, HIGH = 2, TURBO = 3 };
+    
+    field<enum_reg, 1_msb, 0_lsb, access_type::RW, mode> mode_field;
     field<enum_reg, 7_msb, 2_lsb, access_type::RW> data;
 };
 
