@@ -152,8 +152,8 @@ TEST_F(ApplyRegTest, WritesBeforeReads_Ordering) {
 
     auto [v1] = apply(r1.read(), r2 = 0xABCD_r);
 
-    // invocable writes first, then CT writes, then RT writes, reads evaluated last
-    // r2 write should happen, then r1 read
-    EXPECT_EQ(bus_log.back().op, bus_event::type::read);
+    // reads first, then invocable writes, then CT writes, then RT writes evaluated last
+    // r1 read should happen, then r2 write
+    EXPECT_EQ(bus_log.back().op, bus_event::type::write);
     EXPECT_EQ(v1, 0x42u);
 }

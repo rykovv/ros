@@ -241,11 +241,11 @@ auto apply(Op op, Ops... ops)
     // if there's a write and read for the same register old read
     //   value will be returned
 
-    auto evaluate_reads = []<typename... Rs>(std::tuple<Rs...>) /* -> ... */ {
+    auto evaluated_reads = []<typename... Rs>(std::tuple<Rs...>) /* -> ... */ {
         return std::make_tuple(
             Rs::type::bus::template read<typename Rs::type::value_type>(
                 Rs::type::address::value)...);
-    };
+    }(reads);
 
     if constexpr (has_writes_inv) {
         detail::evaluate_invocable_assignments(writes_inv);
@@ -272,7 +272,7 @@ auto apply(Op op, Ops... ops)
         }(writes_rt);
     }
 
-    return evaluate_reads(reads);
+    return evaluated_reads;
 }
 
 } // namespace ros
