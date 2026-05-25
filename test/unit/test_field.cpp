@@ -116,3 +116,145 @@ TEST(FieldAccessType, ReadWrite) {
     using cfg = decltype(mixed_reg::config);
     EXPECT_EQ(static_cast<uint8_t>(cfg::access), static_cast<uint8_t>(access_type::RW));
 }
+
+// --- writable / readable / writeonly / readonly / readwritable ---
+
+TEST(FieldHelpers, RW) {
+    using f = decltype(simple_reg::low_nibble);
+    EXPECT_TRUE(f::writable());
+    EXPECT_TRUE(f::readable());
+    EXPECT_TRUE(f::readwritable());
+    EXPECT_FALSE(f::writeonly());
+    EXPECT_FALSE(f::readonly());
+}
+
+TEST(FieldHelpers, RO) {
+    using f = decltype(mixed_reg::status);
+    EXPECT_FALSE(f::writable());
+    EXPECT_TRUE(f::readable());
+    EXPECT_FALSE(f::readwritable());
+    EXPECT_FALSE(f::writeonly());
+    EXPECT_TRUE(f::readonly());
+}
+
+TEST(FieldHelpers, WO) {
+    using f = decltype(mixed_reg::command);
+    EXPECT_TRUE(f::writable());
+    EXPECT_FALSE(f::readable());
+    EXPECT_FALSE(f::readwritable());
+    EXPECT_TRUE(f::writeonly());
+    EXPECT_FALSE(f::readonly());
+}
+
+TEST(FieldHelpers, RC) {
+    using f = decltype(special_reg::clear_on_read);
+    EXPECT_FALSE(f::writable()); // RC has R bit only
+    EXPECT_TRUE(f::readable());
+    EXPECT_TRUE(f::readonly());
+}
+
+TEST(FieldHelpers, RS) {
+    using f = decltype(special_reg::set_on_read);
+    EXPECT_FALSE(f::writable());
+    EXPECT_TRUE(f::readable());
+    EXPECT_TRUE(f::readonly());
+}
+
+TEST(FieldHelpers, RW_1T) {
+    using f = decltype(special_reg::toggle_on_w1);
+    EXPECT_TRUE(f::writable());
+    EXPECT_TRUE(f::readable());
+    EXPECT_TRUE(f::readwritable());
+}
+
+TEST(FieldHelpers, RW_O) {
+    using f = decltype(special_reg::write_once);
+    EXPECT_TRUE(f::writable());
+    EXPECT_TRUE(f::readable());
+    EXPECT_TRUE(f::readwritable());
+}
+
+// --- rmw_mask / write_mask / read_mask ---
+
+TEST(FieldMasks, RW_AllMasks) {
+    using f = decltype(simple_reg::low_nibble);
+    EXPECT_EQ(f::rmw_mask, f::mask);
+    EXPECT_EQ(f::write_mask, f::mask);
+    EXPECT_EQ(f::read_mask, f::mask);
+}
+
+TEST(FieldMasks, RO_NoWrite) {
+    using f = decltype(mixed_reg::status);
+    EXPECT_EQ(f::rmw_mask, 0u);
+    EXPECT_EQ(f::write_mask, 0u);
+    EXPECT_EQ(f::read_mask, f::mask);
+}
+
+TEST(FieldMasks, WO_NoRead) {
+    using f = decltype(mixed_reg::command);
+    EXPECT_EQ(f::rmw_mask, 0u);
+    EXPECT_EQ(f::write_mask, f::mask);
+    EXPECT_EQ(f::read_mask, 0u);
+}
+
+TEST(FieldMasks, RC_ReadOnly) {
+    using f = decltype(special_reg::clear_on_read);
+    EXPECT_EQ(f::rmw_mask, 0u);
+    EXPECT_EQ(f::write_mask, 0u);
+    EXPECT_EQ(f::read_mask, f::mask);
+}
+
+TEST(FieldMasks, RS_ReadOnly) {
+    using f = decltype(special_reg::set_on_read);
+    EXPECT_EQ(f::rmw_mask, 0u);
+    EXPECT_EQ(f::write_mask, 0u);
+    EXPECT_EQ(f::read_mask, f::mask);
+}
+
+TEST(FieldMasks, RW_0C_WritableNotRmw) {
+    using f = decltype(special_reg::clear_on_w0);
+    EXPECT_EQ(f::rmw_mask, 0u); // not plain RW
+    EXPECT_EQ(f::write_mask, f::mask);
+    EXPECT_EQ(f::read_mask, 0u); // RW_0C has R+W bits but not in read_mask list
+}
+
+TEST(FieldMasks, RW_1T_WritableNotRmw) {
+    using f = decltype(special_reg::toggle_on_w1);
+    EXPECT_EQ(f::rmw_mask, 0u);
+    EXPECT_EQ(f::write_mask, f::mask);
+    EXPECT_EQ(f::read_mask, 0u);
+}
+
+// --- identity ---
+
+TEST(FieldIdentity, RW_Zero) {
+    using f = decltype(simple_reg::low_nibble);
+    EXPECT_EQ(f::identity(), 0u);
+}
+
+TEST(FieldIdentity, RW_0C_EqualsMask) {
+    // Writing all-ones to RW_0C is identity (doesn't clear)
+    using f = decltype(special_reg::clear_on_w0);
+    EXPECT_EQ(f::identity(), f::mask);
+}
+
+TEST(FieldIdentity, RW_0S_EqualsMask) {
+    using f = decltype(special_reg::set_on_w0);
+    EXPECT_EQ(f::identity(), f::mask);
+}
+
+TEST(FieldIdentity, RW_1C_Zero) {
+    // Writing all-zeros to RW_1C is identity (doesn't clear)
+    using f = decltype(special_reg::clear_on_w1);
+    EXPECT_EQ(f::identity(), 0u);
+}
+
+TEST(FieldIdentity, RW_1S_Zero) {
+    using f = decltype(special_reg::set_on_w1);
+    EXPECT_EQ(f::identity(), 0u);
+}
+
+TEST(FieldIdentity, RW_1T_Zero) {
+    using f = decltype(special_reg::toggle_on_w1);
+    EXPECT_EQ(f::identity(), 0u);
+}

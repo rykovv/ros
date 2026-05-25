@@ -152,3 +152,64 @@ TEST_F(ApplyFieldTest, SingleBit_Clear) {
     ASSERT_EQ(bus_log.size(), 2u);
     EXPECT_EQ(bus_log[1].value, 0xFEu);
 }
+
+// --- Enum assignment ---
+
+TEST_F(ApplyFieldTest, EnumAssignment) {
+    constexpr enum_reg r{};
+    bus_read_value = 0x00;
+
+    apply(r.mode_field = mode::HIGH);
+
+    ASSERT_EQ(bus_log.size(), 2u); // partial write → RMW
+    EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(mode::HIGH));
+}
+
+TEST_F(ApplyFieldTest, EnumAssignment_PreservesOtherFields) {
+    constexpr enum_reg r{};
+    bus_read_value = 0xFC; // data field = 0x3F
+
+    apply(r.mode_field = mode::TURBO);
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // mode_field [1:0] = 3, data [7:2] preserved = 0xFC
+    EXPECT_EQ(bus_log[1].value, 0xFFu);
+}
+
+// --- Unsafe field handler ---
+
+TEST_F(ApplyFieldTest, UnsafeFieldWrite) {
+    constexpr simple_reg r{};
+    bus_read_value = 0x00;
+
+    // unsafe bypasses range check
+    apply(r.low_nibble.unsafe = uint8_t{0xFF});
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // unsafe directly casts, so 0xFF goes in as field value
+    // to_reg(0x00, 0xFF) = (0 & ~0x0F) | (0xFF << 0) & 0x0F = 0x0F
+    EXPECT_EQ(bus_log[1].value & 0x0Fu, 0x0Fu);
+}
+
+// --- Bus call ordering ---
+
+TEST_F(ApplyFieldTest, PartialWrite_ReadsBeforeWrites) {
+    constexpr simple_reg r{};
+    bus_read_value = 0xA0;
+
+    apply(r.low_nibble = 5_f);
+
+    ASSERT_GE(bus_log.size(), 2u);
+    EXPECT_EQ(bus_log[0].op, bus_event::type::read);
+    EXPECT_EQ(bus_log[1].op, bus_event::type::write);
+}
+
+TEST_F(ApplyFieldTest, FullWrite_NoRead) {
+    constexpr simple_reg r{};
+
+    apply(r.low_nibble = 5_f, r.high_nibble = 0xA_f);
+
+    // all bits covered → no RMW read
+    ASSERT_EQ(bus_log.size(), 1u);
+    EXPECT_EQ(bus_log[0].op, bus_event::type::write);
+}

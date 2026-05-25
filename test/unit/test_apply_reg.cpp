@@ -51,14 +51,26 @@ TEST_F(ApplyRegTest, SingleRegWrite_RT) {
 
 TEST_F(ApplyRegTest, RuntimeWrite_MaskedByHandler) {
     constexpr mixed_reg r{};
-    // layout excludes WO command bits [11:8]
-    // writing 0xFFFF triggers mask handler -> val & layout
+    // ro_mask = status [3:0] = 0x000F
+    // writing 0xFFFF sets RO bits -> triggers mask_handler -> val & layout
     uint16_t val = 0xFFFF;
 
     apply(r = val);
 
     ASSERT_EQ(bus_log.size(), 1u);
+    // mask_handler returns static_cast<T>(v & layout), layout = 0xFFFF
     EXPECT_EQ(bus_log[0].value, static_cast<uint32_t>(0xFFFF & mixed_reg::layout));
+}
+
+TEST_F(ApplyRegTest, RuntimeWrite_NoRoBits_NoMasking) {
+    constexpr simple_reg r{};
+    // simple_reg has no RO fields (ro_mask = 0), so no masking occurs
+    uint8_t val = 0xFF;
+
+    apply(r = val);
+
+    ASSERT_EQ(bus_log.size(), 1u);
+    EXPECT_EQ(bus_log[0].value, 0xFFu);
 }
 
 // --- Register reads ---
@@ -118,4 +130,30 @@ TEST_F(ApplyRegTest, ReadAndWrite) {
     EXPECT_EQ(v1, 0xAAu);
     EXPECT_EQ(bus_log[1].address, 0x60u);
     EXPECT_EQ(bus_log[1].value, 0xBEEFu);
+}
+
+// --- Unsafe register handler ---
+
+TEST_F(ApplyRegTest, UnsafeRegWrite) {
+    constexpr simple_reg r{};
+
+    apply(r.unsafe = uint8_t{0xFF});
+
+    ASSERT_EQ(bus_log.size(), 1u);
+    EXPECT_EQ(bus_log[0].value, 0xFFu);
+}
+
+// --- Bus call ordering ---
+
+TEST_F(ApplyRegTest, WritesBeforeReads_Ordering) {
+    constexpr simple_reg r1{};
+    constexpr full_reg r2{};
+    bus_read_value = 0x42;
+
+    auto [v1] = apply(r1.read(), r2 = 0xABCD_r);
+
+    // invocable writes first, then CT writes, then RT writes, reads evaluated last
+    // r2 write should happen, then r1 read
+    EXPECT_EQ(bus_log.back().op, bus_event::type::read);
+    EXPECT_EQ(v1, 0x42u);
 }

@@ -60,4 +60,28 @@ struct full_reg : reg<full_reg, uint32_t, 0x60_addr, mock_bus> {
     field<full_reg, 31_msb, 0_lsb, access_type::RW> value;
 };
 
+// Register with special access types (RC, RW_0C, RW_1C, RW_1S, RW_0S, RW_1T)
+struct special_reg : reg<special_reg, uint32_t, 0x70_addr, mock_bus> {
+    using reg<special_reg, uint32_t, 0x70_addr, mock_bus>::operator=;
+
+    field<special_reg, 3_msb, 0_lsb, access_type::RC> clear_on_read;    // read-clear
+    field<special_reg, 7_msb, 4_lsb, access_type::RW_0C> clear_on_w0;   // clear on write 0
+    field<special_reg, 11_msb, 8_lsb, access_type::RW_1C> clear_on_w1;  // clear on write 1
+    field<special_reg, 15_msb, 12_lsb, access_type::RW_1S> set_on_w1;   // set on write 1
+    field<special_reg, 19_msb, 16_lsb, access_type::RW_0S> set_on_w0;   // set on write 0
+    field<special_reg, 23_msb, 20_lsb, access_type::RW_1T> toggle_on_w1;// toggle on write 1
+    field<special_reg, 27_msb, 24_lsb, access_type::RS> set_on_read;    // read-set
+    field<special_reg, 31_msb, 28_lsb, access_type::RW_O> write_once;   // read-write once
+};
+
+// Enum for field assignment testing
+enum class mode : uint8_t { OFF = 0, LOW = 1, HIGH = 2, TURBO = 3 };
+
+struct enum_reg : reg<enum_reg, uint8_t, 0x80_addr, mock_bus> {
+    using reg<enum_reg, uint8_t, 0x80_addr, mock_bus>::operator=;
+
+    field<enum_reg, 1_msb, 0_lsb, access_type::RW> mode_field;
+    field<enum_reg, 7_msb, 2_lsb, access_type::RW> data;
+};
+
 } // namespace test

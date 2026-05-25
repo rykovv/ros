@@ -45,6 +45,43 @@ TEST(Constexpr, RegLayout) {
     static_assert(full_reg::layout == 0xFFFFFFFF);
 }
 
+TEST(Constexpr, RegProperties) {
+    static_assert(simple_reg::physically_readable);
+    static_assert(!wo_reg::physically_readable);
+    static_assert(simple_reg::ro_mask == 0);
+    static_assert(ro_reg::ro_mask == 0xFFFF);
+    static_assert(simple_reg::identity == 0);
+}
+
+TEST(Constexpr, FieldAccessHelpers) {
+    using rw = decltype(simple_reg::low_nibble);
+    static_assert(rw::writable());
+    static_assert(rw::readable());
+    static_assert(rw::readwritable());
+
+    using ro = decltype(mixed_reg::status);
+    static_assert(!ro::writable());
+    static_assert(ro::readable());
+    static_assert(ro::readonly());
+
+    using wo = decltype(mixed_reg::command);
+    static_assert(wo::writable());
+    static_assert(!wo::readable());
+    static_assert(wo::writeonly());
+}
+
+TEST(Constexpr, FieldSubMasks) {
+    using rw = decltype(simple_reg::low_nibble);
+    static_assert(rw::rmw_mask == rw::mask);
+    static_assert(rw::write_mask == rw::mask);
+    static_assert(rw::read_mask == rw::mask);
+
+    using ro = decltype(mixed_reg::status);
+    static_assert(ro::rmw_mask == 0);
+    static_assert(ro::write_mask == 0);
+    static_assert(ro::read_mask == ro::mask);
+}
+
 TEST(Constexpr, LiteralValues) {
     constexpr auto fv = 42_f;
     static_assert(fv.value == 42);
