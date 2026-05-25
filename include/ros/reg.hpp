@@ -89,16 +89,15 @@ constexpr typename reg::value_type get_identity_mask(reg const &r) {
 }
 
 template <typename Tup, std::size_t... Idx>
-constexpr bool get_ro_mask_helper(access_type at, Tup const &t,
-                                      std::index_sequence<Idx...>) {
+constexpr auto get_ro_mask_helper(Tup const &t, std::index_sequence<Idx...>) {
     return ((std::tuple_element_t<Idx, Tup>::readonly() ? std::get<Idx>(t).mask : 0) | ...);
 };
 
-template <typename reg> constexpr bool get_ro_mask(reg const &r) {
+template <typename reg, typename T = reg::value_type>
+constexpr T get_ro_mask(reg const &r) {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
-    return get_ro_mask_helper(access_type::R, tup,
-                                  std::make_index_sequence<tup_size>{});
+    return get_ro_mask_helper(tup, std::make_index_sequence<tup_size>{});
 }
 
 } // namespace detail
