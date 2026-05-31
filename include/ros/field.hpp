@@ -42,6 +42,7 @@ struct field {
     using value_type_r = typename reg_derived::value_type;
     using value_type = value_type_f;
     using reg = reg_derived;
+    using type = field<reg_derived, msb, lsb, at, value_type_f>;
 
     constexpr static access_type access = at;
 
@@ -173,12 +174,6 @@ struct field {
         return detail::field_assignment_rt<field>{runtime_check(val)};
     }
 
-    constexpr auto read() const -> detail::field_read<field> {
-        static_assert(readable(), "Cannot read non-readable field");
-
-        return detail::field_read<field>{};
-    }
-
     constexpr auto operator()(std::invocable<value_type> auto f) const
         -> detail::field_assignment_invocable<decltype(f), field, field> {
         static_assert(readwritable(), "Invocable write requires RW field access_type");
@@ -261,7 +256,7 @@ namespace detail {
 // specialization for is_reg_v from concepts.hpp
 template <typename Reg, detail::msb msb, detail::lsb lsb, access_type AT,
           field_type field_t>
-constexpr bool is_field_v<field<Reg, msb, lsb, AT, field_t>> = true;
+struct is_field<field<Reg, msb, lsb, AT, field_t>> : std::true_type {};
 } // namespace detail
 
 } // namespace ros

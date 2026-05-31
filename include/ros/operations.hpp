@@ -36,10 +36,6 @@ struct field_assignment_invocable : field_assignment<FieldOp> {
     F lambda_;
 };
 
-template <typename Field> struct field_read {
-    using type = Field;
-};
-
 } // namespace detail
 
 // reg operations
@@ -77,10 +73,6 @@ struct register_assignment_invocable : register_assignment<RegisterOp> {
     }
 
     F lambda_;
-};
-
-template <typename Register> struct register_read {
-    using type = Register;
 };
 } // namespace detail
 } // namespace ros

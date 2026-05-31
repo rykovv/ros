@@ -7,16 +7,11 @@ namespace ros {
 // field type traits
 namespace detail {
 
-template <typename> struct is_field_read {
-    constexpr static bool value = false;
-};
+// base case forward declaration for specialization in field.hpp
+template <typename T> struct is_field : std::false_type {};
+template <typename T> constexpr bool is_field_v = is_field<T>::value;
 
-template <typename Field> struct is_field_read<ros::detail::field_read<Field>> {
-    constexpr static bool value = true;
-};
-
-template <typename Field>
-constexpr bool is_field_read_v = is_field_read<Field>::value;
+template <typename T> struct is_field_read : is_field<T> {};
 
 template <typename> struct is_field_assignment_ct {
     constexpr static bool value = false;
@@ -87,14 +82,17 @@ struct is_register_assignment_invocable<
     ros::detail::register_assignment_invocable<F, Registers...>>
     : std::true_type {};
 
-template <typename> struct is_register_read {
-    constexpr static bool value = false;
-};
+// base case forward declaration for specialization in reg.hpp
+template <typename T> struct is_register_assignment : std::is_base_of<register_assignment<typename T::type>, T> {};
+template <typename T> constexpr bool is_register_assignment_v = is_register_assignment<T>::value;
 
-template <typename Register>
-struct is_register_read<ros::detail::register_read<Register>> {
-    constexpr static bool value = true;
+template <typename T> struct is_derived_reg {
+    static constexpr bool value = std::is_base_of_v<typename T::type, T>
+        and not std::is_same_v<typename T::type, T>;
 };
+template <typename T> constexpr bool is_derived_reg_v = is_derived_reg<T>::value;
+
+template <typename T> struct is_register_read : is_derived_reg<T> {};
 
 template <typename... Ops> struct one_register_assignment_per_apply;
 

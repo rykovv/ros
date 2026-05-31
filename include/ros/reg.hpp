@@ -109,6 +109,7 @@ struct reg {
     using value_type = T;
     using bus = bus_t;
     using address = std::integral_constant<std::size_t, addr.value>;
+    using type = reg<reg_derived, T, addr, bus_t>;
 
     /* identity mask is relevant to RW_0C, RW_1C, RW_0S, RW_1S, RW_1T because
        they have predefined value that won't modify HW state */
@@ -116,11 +117,6 @@ struct reg {
     constexpr static value_type layout = detail::get_rmw_mask(reg_der{});
     constexpr static bool physically_readable = not detail::has_wo_access(reg_der{});
     constexpr static value_type ro_mask = detail::get_ro_mask(reg_der{});
-
-    constexpr auto read() const -> detail::register_read<reg> {
-        static_assert(physically_readable, "Attempt to read non-readable register");
-        return detail::register_read<reg>{};
-    }
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
@@ -191,9 +187,10 @@ struct reg {
 
 namespace detail {
 // specialization for is_reg_v from concepts.hpp
-template <typename reg_derived, detail::register_type T, detail::addr addr,
-          typename bus_t>
-constexpr bool is_reg_v<reg<reg_derived, T, addr, bus_t>> = true;
+// template <typename reg_derived, detail::register_type T, detail::addr addr,
+//           typename bus_t>
+// struct is_reg_op<reg<reg_derived, T, addr, bus_t>> : std::true_type {};
+// struct is_reg<reg<reg_derived, T, addr, bus_t>> : std::is_base_of<reg<reg_derived, T, addr, bus_t>, reg_derived> {};
 } // namespace detail
 
 } // namespace ros

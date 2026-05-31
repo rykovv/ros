@@ -79,7 +79,7 @@ TEST_F(ApplyRegTest, SingleRegRead) {
     constexpr simple_reg r{};
     bus_read_value = 0xCD;
 
-    auto [val] = apply(r.read());
+    auto [val] = apply(r);
 
     ASSERT_EQ(bus_log.size(), 1u);
     EXPECT_EQ(bus_log[0].op, bus_event::type::read);
@@ -92,7 +92,7 @@ TEST_F(ApplyRegTest, MultipleRegRead) {
     constexpr full_reg r2{};
     bus_read_value = 0x42;
 
-    auto [v1, v2] = apply(r1.read(), r2.read());
+    auto [v1, v2] = apply(r1, r2);
 
     ASSERT_EQ(bus_log.size(), 2u);
     EXPECT_EQ(v1, 0x42u);
@@ -123,7 +123,7 @@ TEST_F(ApplyRegTest, ReadAndWrite) {
     constexpr full_reg r2{};
     bus_read_value = 0xAA;
 
-    auto [v1] = apply(r1.read(), r2 = 0xBEEF_r);
+    auto [v1] = apply(r1, r2 = 0xBEEF_r);
 
     // read r1 + write r2
     ASSERT_EQ(bus_log.size(), 2u);
@@ -150,7 +150,7 @@ TEST_F(ApplyRegTest, WritesBeforeReads_Ordering) {
     constexpr full_reg r2{};
     bus_read_value = 0x42;
 
-    auto [v1] = apply(r1.read(), r2 = 0xABCD_r);
+    auto [v1] = apply(r1, r2 = 0xABCD_r);
 
     // reads first, then invocable writes, then CT writes, then RT writes evaluated last
     // r1 read should happen, then r2 write

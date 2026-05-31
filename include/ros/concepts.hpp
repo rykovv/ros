@@ -32,9 +32,6 @@ template <typename Op, typename... Ops>
 concept same_register =
     (std::is_same_v<typename Op::type::reg, typename Ops::type::reg> && ...);
 
-// base case forward declaration for specialization in field.hpp
-template <typename T> constexpr bool is_field_v = false;
-
 template <typename... Ops>
 concept field_operations = (is_field_v<typename Ops::type> && ...);
 
@@ -47,11 +44,8 @@ template <typename... Ops>
 concept one_assignment_per_register =
     one_register_assignment_per_apply_v<Ops...>;
 
-// base case forward declaration for specialization in reg.hpp
-template <typename T> constexpr bool is_reg_v = false;
-
 template <typename... Ops>
-concept register_operations = (is_reg_v<typename Ops::type> && ...);
+concept register_operations = ((is_derived_reg_v<Ops> || is_register_assignment_v<Ops>) && ...);
 
 template <typename Op, typename... Ops>
 concept register_constraints =
