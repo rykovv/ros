@@ -145,7 +145,7 @@ auto eval(Op op, Ops... ops)
 
     auto operations = std::make_tuple(op, ops...);
 
-    value_type value{};
+    value_type value = reg::identity;
 
     // compile-time writes
     auto writes_ct =
