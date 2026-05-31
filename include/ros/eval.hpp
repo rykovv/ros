@@ -128,7 +128,7 @@ evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
-auto apply(Op op, Ops... ops)
+auto eval(Op op, Ops... ops)
     -> detail::return_reads_t<
         decltype(filter::tuple_filter<detail::is_field_read>(
             std::make_tuple(op, ops...)))> {
@@ -200,7 +200,7 @@ auto apply(Op op, Ops... ops)
 
 template <typename Op, typename... Ops>
     requires detail::register_constraints<Op, Ops...>
-auto apply(Op op, Ops... ops)
+auto eval(Op op, Ops... ops)
     -> detail::return_reads_t<
         decltype(filter::tuple_filter<detail::is_register_read>(
             std::make_tuple(op, ops...)))> {

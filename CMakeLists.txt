@@ -29,7 +29,7 @@ target_sources(
 	include/ros/filter.hpp
 	include/ros/operations.hpp
 	include/ros/reg.hpp
-	include/ros/apply.hpp
+	include/ros/eval.hpp
 	include/ros/constant.hpp
 	include/ros/field.hpp
 	include/ros/literals.hpp

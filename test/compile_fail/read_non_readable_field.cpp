@@ -1,8 +1,8 @@
 // Expected: static_assert failure — cannot read non-readable field (WO)
 #include "test_registers.hpp"
-#include <ros/apply.hpp>
+#include <ros/eval.hpp>
 
 int main() {
     constexpr mixed_reg r{};
-    apply(r.command.read()); // command is WO
+    eval(r.command.read()); // command is WO
 }
