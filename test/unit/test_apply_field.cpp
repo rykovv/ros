@@ -83,7 +83,7 @@ TEST_F(ApplyFieldTest, SingleFieldRead) {
     constexpr simple_reg r{};
     bus_read_value = 0xA5;
 
-    auto [low_val] = eval(r.low_nibble);
+    auto low_val = eval(r.low_nibble);
 
     ASSERT_EQ(bus_log.size(), 1u);
     EXPECT_EQ(bus_log[0].op, bus_event::type::read);
@@ -108,7 +108,7 @@ TEST_F(ApplyFieldTest, WriteAndRead) {
     constexpr simple_reg r{};
     bus_read_value = 0xA0;
 
-    auto [high_val] = eval(r.low_nibble = 7_f, r.high_nibble);
+    auto high_val = eval(r.low_nibble = 7_f, r.high_nibble);
 
     // partial write triggers RMW read, then write
     ASSERT_EQ(bus_log.size(), 2u);

@@ -12,6 +12,10 @@ template <typename T> struct return_reads {
     using type = void;
 };
 
+template <typename Op> struct return_reads<std::tuple<Op>> {
+    using type = typename Op::type::value_type;
+};
+
 template <typename... Ops> struct return_reads<std::tuple<Ops...>> {
     using type = std::tuple<typename Ops::type::value_type...>;
 };
@@ -151,6 +155,7 @@ auto eval(Op op, Ops... ops)
         filter::tuple_filter<detail::is_field_assignment_rt>(operations);
     auto writes_inv =
         filter::tuple_filter<detail::is_field_assignment_invocable>(operations);
+    auto reads = filter::tuple_filter<detail::is_field_read>(operations);
 
     constexpr value_type write_mask_ct =
         detail::get_write_mask<value_type>(writes_ct);
@@ -194,8 +199,13 @@ auto eval(Op op, Ops... ops)
             return std::make_tuple(Ts::type::to_field(value)...);
         };
 
-    return get_read_fields(
-        filter::tuple_filter<detail::is_field_read>(operations));
+    if constexpr (std::tuple_size_v<decltype(reads)> == 1) {
+        // if there's only one read, just return the field value without tuple
+        using read = std::tuple_element_t<0, decltype(reads)>;
+        return read::type::to_field(value);
+    } else {
+        return get_read_fields(reads);
+    }
 }
 
 template <typename Op, typename... Ops>
@@ -228,7 +238,6 @@ auto eval(Op op, Ops... ops)
     auto writes_inv =
         filter::tuple_filter<detail::is_register_assignment_invocable>(
             operations);
-    // reads
     auto reads = filter::tuple_filter<detail::is_register_read>(operations);
 
     constexpr bool has_writes_ct = std::tuple_size_v<decltype(writes_ct)> > 0;
@@ -259,20 +268,38 @@ auto eval(Op op, Ops... ops)
     //   the compiler to optimize the runtime writes
 
     if constexpr (has_writes_ct) {
-        []<typename... Ws>(std::tuple<Ws...>) -> void {
-            (Ws::type::bus::write(Ws::value, Ws::type::address::value), ...);
-        }(writes_ct);
+        if constexpr (std::tuple_size_v<decltype(writes_ct)> == 1) {
+            // if there's only one write, just call write without bundling
+            using write = std::tuple_element_t<0, decltype(writes_ct)>;
+            write::type::bus::write(write::value, write::type::address::value);
+        } else {
+            []<typename... Ws>(std::tuple<Ws...>) -> void {
+                (Ws::type::bus::write(Ws::value, Ws::type::address::value), ...);
+            }(writes_ct);
+        }
     }
 
     if constexpr (has_writes_rt) {
-        []<typename... Ws>(std::tuple<Ws...> ws) -> void {
-            (Ws::type::bus::write(std::get<Ws>(ws).value,
-                                  Ws::type::address::value),
-             ...);
-        }(writes_rt);
+        if constexpr (std::tuple_size_v<decltype(writes_rt)> == 1) {
+            // if there's only one write, just call write without bundling
+            using write = std::tuple_element_t<0, decltype(writes_rt)>;
+            write::type::bus::write(std::get<write>(writes_rt).value, write::type::address::value);
+        } else {
+            []<typename... Ws>(std::tuple<Ws...> ws) -> void {
+                (Ws::type::bus::write(std::get<Ws>(ws).value,
+                                      Ws::type::address::value),
+                 ...);
+            }(writes_rt);
+        }
     }
 
-    return evaluated_reads;
+    // if there's only one read, just return the reg value without tuple
+    if constexpr (std::tuple_size_v<decltype(reads)> == 1) {
+        using read = std::tuple_element_t<0, decltype(reads)>;
+        return std::get<0>(evaluated_reads);
+    } else {
+        return evaluated_reads;
+    }
 }
 
 } // namespace ros
