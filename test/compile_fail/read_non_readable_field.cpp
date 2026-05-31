@@ -4,5 +4,5 @@
 
 int main() {
     constexpr mixed_reg r{};
-    eval(r.command.read()); // command is WO
+    eval(r.command); // command is WO
 }

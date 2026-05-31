@@ -157,6 +157,11 @@ auto eval(Op op, Ops... ops)
         filter::tuple_filter<detail::is_field_assignment_invocable>(operations);
     auto reads = filter::tuple_filter<detail::is_field_read>(operations);
 
+    []<typename... Rs>(std::tuple<Rs...>) {
+        static_assert((Rs::type::readable() && ...),
+                      "Cannot read non-readable field");
+    }(reads);
+
     constexpr value_type write_mask_ct =
         detail::get_write_mask<value_type>(writes_ct);
     constexpr value_type write_mask_rt =
@@ -249,6 +254,11 @@ auto eval(Op op, Ops... ops)
     //   call read_bundle to each tuple
     // if there's a write and read for the same register old read
     //   value will be returned
+
+    []<typename... Rs>(std::tuple<Rs...>) {
+        static_assert((Rs::physically_readable && ...),
+                      "Cannot read write-only register");
+    }(reads);
 
     auto evaluated_reads = []<typename... Rs>(std::tuple<Rs...>) /* -> ... */ {
         return std::make_tuple(

@@ -4,5 +4,5 @@
 
 int main() {
     constexpr wo_reg r{};
-    eval(r.read());
+    eval(r); // wo_reg is write-only
 }
