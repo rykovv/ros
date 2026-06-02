@@ -138,8 +138,7 @@ jobs:
         run: cmake --build ${{ github.workspace }}/build
 
       - name: Test
-        working-directory: ${{ github.workspace }}/build
-        run: ctest --output-on-failure -j $(nproc)
+        run: ctest --test-dir ${{ github.workspace }}/build/test --output-on-failure -j $(nproc)
 
   all_pass:
     runs-on: ubuntu-24.04
