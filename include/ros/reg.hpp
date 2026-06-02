@@ -34,7 +34,7 @@ template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_rmw_mask_helper(std::tuple<T, Ts...> const &t,
                                    std::index_sequence<Idx...>) ->
     typename T::value_type_r {
-    return (std::get<Idx>(t).mask | ...);
+    return (std::get<Idx>(t).rmw_mask | ...);
 };
 
 template <typename reg>

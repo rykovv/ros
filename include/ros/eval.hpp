@@ -166,6 +166,8 @@ auto eval(Op op, Ops... ops)
         detail::get_write_mask<value_type>(writes_ct);
     constexpr value_type write_mask_rt =
         detail::get_write_mask<value_type>(writes_rt);
+    // currently captures only the assigned field, but it can be 
+    // extended to capture all fields that are used in the invocable
     constexpr value_type write_mask_inv =
         detail::get_write_mask<value_type>(writes_inv);
     constexpr value_type write_mask =
@@ -176,7 +178,18 @@ auto eval(Op op, Ops... ops)
         constexpr bool has_invocable_writes =
             std::tuple_size_v<decltype(writes_inv)> > 0;
 
-        if constexpr (is_partial_write || has_invocable_writes) {
+        if constexpr (is_partial_write) {
+            // registers are not guaranteed to be idempotent, (the stored
+            // value can hold value that may trigger clear/set/toggle.
+            // to avoid unintended side effect, preserve the identity for
+            // special fields so no side effect is triggered
+            value_type tmp_read = bus::template read<value_type>(reg::address::value);
+            // set only rmw-able bits (value guaranteed to be zero for rmw bits)
+            value |= (tmp_read & rmw_mask);
+        } else if constexpr (has_invocable_writes) {
+            // invocable writes will get raw fields.
+            // once the mask of invocable writes includes all fields used 
+            // in the invocable, will need to set unused bits to identity.
             value = bus::template read<value_type>(reg::address::value);
         }
 
