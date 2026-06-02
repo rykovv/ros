@@ -58,15 +58,15 @@ struct field {
         return msb.value == lsb.value ? 1 : msb.value - lsb.value + 1;
     }();
 
-    constexpr static value_type_r mask = []() {
+    constexpr static value_type_r mask = []() -> value_type_r {
         if (msb.value != lsb.value) {
             if constexpr (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
-                return ~((1u << lsb.value) - 1);
+                return static_cast<value_type_r>(~((1u << lsb.value) - 1));
             } else {
-                return ((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1);
+                return static_cast<value_type_r>(((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1));
             }
         } else {
-            return 1u << msb.value;
+            return static_cast<value_type_r>(1u << msb.value);
         }
     }();
 
