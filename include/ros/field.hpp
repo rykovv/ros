@@ -9,6 +9,14 @@
 #include <type_traits>
 
 namespace ros {
+
+namespace utils {
+template <typename Enum>
+[[nodiscard]] constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept {
+    return static_cast<std::underlying_type_t<Enum>>(e);
+}
+} // namespace utils
+
 namespace detail {
 
 template <typename Field> struct unsafe_field_operations_handler {
@@ -216,13 +224,13 @@ struct field {
     }
 
     constexpr static bool writable() {
-        return (std::to_underlying(access) &
-                std::to_underlying(access_type::W)) != 0;
+        return (utils::to_underlying(access) &
+                utils::to_underlying(access_type::W)) != 0;
     }
 
     constexpr static bool readable() {
-        return (std::to_underlying(access) &
-                std::to_underlying(access_type::R)) != 0;
+        return (utils::to_underlying(access) &
+                utils::to_underlying(access_type::R)) != 0;
     }
 
     constexpr static bool readwritable() {

@@ -10,7 +10,7 @@ project(ros
 add_library(ros INTERFACE)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD 20)
 endif()
 
 target_sources(
