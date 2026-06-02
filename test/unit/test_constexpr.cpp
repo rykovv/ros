@@ -41,8 +41,8 @@ TEST(Constexpr, FieldToField) {
 }
 
 TEST(Constexpr, RegLayout) {
-    static_assert(simple_reg::layout == 0xFF);
-    static_assert(full_reg::layout == 0xFFFFFFFF);
+    static_assert(simple_reg::writable_mask == 0xFF);
+    static_assert(full_reg::writable_mask == 0xFFFFFFFF);
 }
 
 TEST(Constexpr, RegProperties) {

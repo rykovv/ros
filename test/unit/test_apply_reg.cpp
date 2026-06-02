@@ -59,7 +59,7 @@ TEST_F(ApplyRegTest, RuntimeWrite_MaskedByHandler) {
 
     ASSERT_EQ(bus_log.size(), 1u);
     // mask_handler returns static_cast<T>(v & layout), layout = 0xFFFF
-    EXPECT_EQ(bus_log[0].value, static_cast<uint32_t>(0xFFFF & mixed_reg::layout));
+    EXPECT_EQ(bus_log[0].value, static_cast<uint32_t>(0xFFFF & mixed_reg::writable_mask));
 }
 
 TEST_F(ApplyRegTest, RuntimeWrite_NoRoBits_NoMasking) {

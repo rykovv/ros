@@ -42,6 +42,22 @@ constexpr T get_write_value(T value, T mask, std::tuple<> const &tup) {
     return value;
 }
 
+template <typename Tuple, std::size_t... Idx>
+constexpr auto get_write_mask_helper(Tuple const &tup,
+                                     std::index_sequence<Idx...>) {
+    return (std::tuple_element_t<Idx, Tuple>::type::mask | ...);
+};
+
+template <typename T> constexpr T get_write_mask(std::tuple<> const &tup) {
+    return 0;
+}
+
+template <typename T, typename... Ts>
+constexpr T get_write_mask(std::tuple<Ts...> const &tup) {
+    return get_write_mask_helper(tup,
+                                 std::make_index_sequence<sizeof...(Ts)>{});
+}
+
 template <typename T, typename InvocableWrite, typename TupleFields,
           std::size_t... Idx>
 constexpr T get_invocable_write_fields_helper(T value, InvocableWrite iw,
@@ -141,7 +157,7 @@ auto eval(Op op, Ops... ops)
     using reg = typename Op::type::reg;
     using bus = typename reg::bus;
 
-    constexpr value_type rmw_mask = reg::layout;
+    constexpr value_type rmw_mask = reg::rmw_mask;
 
     auto operations = std::make_tuple(op, ops...);
 

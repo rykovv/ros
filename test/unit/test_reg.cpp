@@ -8,26 +8,25 @@ using namespace ros::literals;
 // --- Layout (now: all field masks OR'd) ---
 
 TEST(RegLayout, AllRW) {
-    EXPECT_EQ(simple_reg::layout, 0xFF);
+    EXPECT_EQ(simple_reg::writable_mask, 0xFF);
 }
 
 TEST(RegLayout, MixedAccess) {
     // All field masks OR'd: status|config|command|flags = 0x000F|0x00F0|0x0F00|0xF000
-    EXPECT_EQ(mixed_reg::layout, 0xFFFF);
+    EXPECT_EQ(mixed_reg::writable_mask, 0xFFF0);
 }
 
 TEST(RegLayout, AllRO) {
-    // byte0 [7:0] + byte1 [15:8] = 0xFF | 0xFF00
-    EXPECT_EQ(ro_reg::layout, 0xFFFFu);
+    EXPECT_EQ(ro_reg::writable_mask, 0x0);
 }
 
 TEST(RegLayout, AllWO) {
     // WO fields now contribute to layout: 0xFF | 0xFF00
-    EXPECT_EQ(wo_reg::layout, 0xFFFFu);
+    EXPECT_EQ(wo_reg::writable_mask, 0xFFFFu);
 }
 
 TEST(RegLayout, FullWidth) {
-    EXPECT_EQ(full_reg::layout, 0xFFFFFFFF);
+    EXPECT_EQ(full_reg::writable_mask, 0xFFFFFFFF);
 }
 
 // --- ro_mask (only RO fields contribute) ---

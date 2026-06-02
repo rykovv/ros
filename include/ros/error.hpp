@@ -31,7 +31,7 @@ using register_error_handler = T (*)(T);
 template <typename Register, typename T = typename Register::value_type>
 constexpr register_error_handler<Register> mask_handler = [](T v) -> T {
     std::cout << "Attempt to assign read-only bits with " << v << std::endl;
-    return static_cast<T>(v & Register::layout);
+    return static_cast<T>(v & Register::writable_mask);
 };
 
 template <typename Register>

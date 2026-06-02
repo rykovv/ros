@@ -44,20 +44,18 @@ constexpr typename reg::value_type get_rmw_mask(reg const &r) {
     return get_rmw_mask_helper(tup, std::make_index_sequence<tup_size>{});
 }
 
-template <typename Tuple, std::size_t... Idx>
-constexpr auto get_write_mask_helper(Tuple const &tup,
-                                     std::index_sequence<Idx...>) {
-    return (std::tuple_element_t<Idx, Tuple>::type::mask | ...);
+template <typename T, typename... Ts, std::size_t... Idx>
+constexpr auto get_writable_mask_helper(std::tuple<T, Ts...> const &t,
+                                   std::index_sequence<Idx...>) ->
+    typename T::value_type_r {
+    return ((std::get<Idx>(t).writable() ? std::get<Idx>(t).mask : 0) | ...);
 };
 
-template <typename T> constexpr T get_write_mask(std::tuple<> const &tup) {
-    return 0;
-}
-
-template <typename T, typename... Ts>
-constexpr T get_write_mask(std::tuple<Ts...> const &tup) {
-    return get_write_mask_helper(tup,
-                                 std::make_index_sequence<sizeof...(Ts)>{});
+template <typename reg>
+constexpr typename reg::value_type get_writable_mask(reg const &r) {
+    auto tup = reflect::to_tuple(r);
+    constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
+    return get_writable_mask_helper(tup, std::make_index_sequence<tup_size>{});
 }
 
 // register operations safety
@@ -114,9 +112,10 @@ struct reg {
     /* identity mask is relevant to RW_0C, RW_1C, RW_0S, RW_1S, RW_1T because
        they have predefined value that won't modify HW state */
     constexpr static value_type identity = detail::get_identity_mask(reg_der{});
-    constexpr static value_type layout = detail::get_rmw_mask(reg_der{});
-    constexpr static bool physically_readable = not detail::has_wo_access(reg_der{});
+    constexpr static value_type rmw_mask = detail::get_rmw_mask(reg_der{});
+    constexpr static value_type writable_mask = detail::get_writable_mask(reg_der{});
     constexpr static value_type ro_mask = detail::get_ro_mask(reg_der{});
+    constexpr static bool physically_readable = not detail::has_wo_access(reg_der{});
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
