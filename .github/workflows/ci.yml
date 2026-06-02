@@ -67,11 +67,6 @@ jobs:
             cxx: clang++
 
           - compiler: clang
-            version: 14
-            install: sudo apt update && sudo apt install -y clang-14
-            toolchain_root: "/usr/lib/llvm-14"
-
-          - compiler: clang
             version: 16
             install: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 16
             toolchain_root: "/usr/lib/llvm-16"
