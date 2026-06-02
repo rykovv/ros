@@ -49,9 +49,9 @@ target_link_libraries(your_target PRIVATE ros)
 
 ## Compiler compatibility
 
-| Standard | GCC | Clang | MSVC |
-|----------|-----|-------|------|
-| C++20    | 12+ | 14+   | —    |
+| Standard | GCC        | Clang        | MSVC |
+|----------|------------|--------------|------|
+| C++20    | 12 thru 16 | 14 thru 21   | —    |
 
 ## At a glance
 
@@ -64,7 +64,7 @@ using namespace ros::literals;
 
 // 16-bit control register at address 0x40
 struct ctrl_reg : reg<ctrl_reg, uint16_t, 0x40_addr, my_bus> {
-    // tiny boiler plate to allow assignment semantics
+    // boiler plate to allow assignment semantics
     using reg<ctrl_reg, uint16_t, 0x40_addr, my_bus>::operator=;
 
     field<ctrl_reg,  3_msb,  0_lsb, access_type::RW>    mode;
@@ -124,7 +124,7 @@ ROS supports all access types defined by the IEEE 1685 (IP-XACT) and
 ARM CMSIS-SVD standards. Each type carries distinct read, write, and identity
 semantics that the library enforces automatically.
 
-| Type    | Description             | Read | Write | *Identity | *RMW safe |
+| Type    | Description             | Read | Write | Identity* | RMW safe* |
 |---------|-------------------------|------|-------|-----------|-----------|
 | `RW`    | Read-Write              | yes  | yes   | `0`       | yes       |
 | `RO`    | Read-Only               | yes  | —     | —         | —         |
@@ -139,11 +139,11 @@ semantics that the library enforces automatically.
 | `RW_O`  | Read-Write-Once         | yes  | yes   | `0`       | no        |
 | `RSVD`  | Reserved                | —    | —     | —         | —         |
 
-**Identity** is the value that, when written to a field, produces no hardware
+***Identity** is the value that, when written to a field, produces no hardware
 side effect. For example, writing `0` to an `RW_1C` field does not clear
 anything; writing all-ones to an `RW_0S` field does not set anything.
 
-**RMW safe** indicates whether a field participates in the `rmw_mask`. Only
+***RMW safe** indicates whether a field participates in the `rmw_mask`. Only
 plain `RW` fields do — all other writable types use their identity value during
 partial writes instead of a read-back value.
 
