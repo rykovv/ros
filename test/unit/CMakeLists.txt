@@ -3,6 +3,7 @@ add_executable(ros_tests
     test_reg.cpp
     test_apply_field.cpp
     test_apply_reg.cpp
+    test_access_types.cpp
     test_literals.cpp
     test_constexpr.cpp
 )

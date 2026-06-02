@@ -102,21 +102,6 @@ TEST(FieldRuntimeCheck, BoundaryValue) {
     EXPECT_EQ(low::runtime_check(0x0F), 0x0F);
 }
 
-TEST(FieldAccessType, ReadOnly) {
-    using status = decltype(mixed_reg::status);
-    EXPECT_EQ(static_cast<uint8_t>(status::access), static_cast<uint8_t>(access_type::RO));
-}
-
-TEST(FieldAccessType, WriteOnly) {
-    using cmd = decltype(mixed_reg::command);
-    EXPECT_EQ(static_cast<uint8_t>(cmd::access), static_cast<uint8_t>(access_type::WO));
-}
-
-TEST(FieldAccessType, ReadWrite) {
-    using cfg = decltype(mixed_reg::config);
-    EXPECT_EQ(static_cast<uint8_t>(cfg::access), static_cast<uint8_t>(access_type::RW));
-}
-
 // --- writable / readable / writeonly / readonly / readwritable ---
 
 TEST(FieldHelpers, RW) {

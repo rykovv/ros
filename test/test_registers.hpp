@@ -84,4 +84,68 @@ struct enum_reg : reg<enum_reg, uint8_t, 0x80_addr, mock_bus> {
     field<enum_reg, 7_msb, 2_lsb, access_type::RW> data;
 };
 
+// ============================================================================
+// Focused registers for access_type-dependent behavior testing.
+// Each pairs one RW field with one special-access field so that
+// RMW identity preservation can be tested in isolation.
+// ============================================================================
+
+// RW + RW_1C — identity for RW_1C is 0 (writing 0 = no-op)
+struct rw_w1c_reg : reg<rw_w1c_reg, uint8_t, 0xA0_addr, mock_bus> {
+    using reg<rw_w1c_reg, uint8_t, 0xA0_addr, mock_bus>::operator=;
+
+    field<rw_w1c_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1c_reg, 7_msb, 4_lsb, access_type::RW_1C> status;
+};
+
+// RW + RW_0S — identity for RW_0S is mask (writing 1 = no-op)
+struct rw_w0s_reg : reg<rw_w0s_reg, uint8_t, 0xA1_addr, mock_bus> {
+    using reg<rw_w0s_reg, uint8_t, 0xA1_addr, mock_bus>::operator=;
+
+    field<rw_w0s_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w0s_reg, 7_msb, 4_lsb, access_type::RW_0S> control;
+};
+
+// RW + RW_1T — identity for RW_1T is 0 (writing 0 = no-op)
+struct rw_w1t_reg : reg<rw_w1t_reg, uint8_t, 0xA2_addr, mock_bus> {
+    using reg<rw_w1t_reg, uint8_t, 0xA2_addr, mock_bus>::operator=;
+
+    field<rw_w1t_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1t_reg, 7_msb, 4_lsb, access_type::RW_1T> toggle;
+};
+
+// RW + RW_0C — identity for RW_0C is mask (writing 1 = no-op)
+struct rw_w0c_reg : reg<rw_w0c_reg, uint8_t, 0xA3_addr, mock_bus> {
+    using reg<rw_w0c_reg, uint8_t, 0xA3_addr, mock_bus>::operator=;
+
+    field<rw_w0c_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w0c_reg, 7_msb, 4_lsb, access_type::RW_0C> flags;
+};
+
+// RW + RW_1S — identity for RW_1S is 0 (writing 0 = no-op)
+struct rw_w1s_reg : reg<rw_w1s_reg, uint8_t, 0xA4_addr, mock_bus> {
+    using reg<rw_w1s_reg, uint8_t, 0xA4_addr, mock_bus>::operator=;
+
+    field<rw_w1s_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1s_reg, 7_msb, 4_lsb, access_type::RW_1S> sticky;
+};
+
+// RW + RC — tests that writing the RW field doesn't trigger a bus read
+// that would inadvertently clear RC bits in hardware
+struct rw_rc_reg : reg<rw_rc_reg, uint8_t, 0xA5_addr, mock_bus> {
+    using reg<rw_rc_reg, uint8_t, 0xA5_addr, mock_bus>::operator=;
+
+    field<rw_rc_reg, 3_msb, 0_lsb, access_type::RW> data;
+    field<rw_rc_reg, 7_msb, 4_lsb, access_type::RC> irq_status;
+};
+
+// Only special fields (no plain RW) — tests that eval works
+// without any RMW-able fields; rmw_mask = 0
+struct special_only_reg : reg<special_only_reg, uint8_t, 0xA6_addr, mock_bus> {
+    using reg<special_only_reg, uint8_t, 0xA6_addr, mock_bus>::operator=;
+
+    field<special_only_reg, 3_msb, 0_lsb, access_type::RW_1C> clear_bits;
+    field<special_only_reg, 7_msb, 4_lsb, access_type::RW_0S> set_bits;
+};
+
 } // namespace test

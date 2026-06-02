@@ -84,6 +84,37 @@ TEST(RegIdentity, SpecialAccessTypes) {
     EXPECT_EQ(special_reg::identity, expected);
 }
 
+// --- rmw_mask (only plain RW fields contribute) ---
+
+TEST(RegRmwMask, AllRW) {
+    // Both fields are RW → rmw_mask covers all bits
+    EXPECT_EQ(simple_reg::rmw_mask, 0xFFu);
+}
+
+TEST(RegRmwMask, MixedAccess) {
+    // Only config [7:4] and flags [15:12] are RW
+    EXPECT_EQ(mixed_reg::rmw_mask, 0xF0F0u);
+}
+
+TEST(RegRmwMask, AllRO) {
+    EXPECT_EQ(ro_reg::rmw_mask, 0u);
+}
+
+TEST(RegRmwMask, AllWO) {
+    // WO is not plain RW → rmw_mask = 0
+    EXPECT_EQ(wo_reg::rmw_mask, 0u);
+}
+
+TEST(RegRmwMask, SpecialAccess) {
+    // special_reg has no plain RW fields
+    EXPECT_EQ(special_reg::rmw_mask, 0u);
+}
+
+TEST(RegRmwMask, RW_Plus_Special) {
+    // rw_w1c_reg: data[3:0] is RW, status[7:4] is RW_1C
+    EXPECT_EQ(rw_w1c_reg::rmw_mask, 0x0Fu);
+}
+
 // --- Address ---
 
 TEST(RegAddress, Values) {

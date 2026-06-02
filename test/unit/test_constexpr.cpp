@@ -40,9 +40,19 @@ TEST(Constexpr, FieldToField) {
     static_assert(high::to_field(0xA5) == 0x0A);
 }
 
-TEST(Constexpr, RegLayout) {
+TEST(Constexpr, RegWritableMask) {
     static_assert(simple_reg::writable_mask == 0xFF);
     static_assert(full_reg::writable_mask == 0xFFFFFFFF);
+    static_assert(ro_reg::writable_mask == 0);
+    static_assert(special_reg::writable_mask != 0); // has writable special fields
+}
+
+TEST(Constexpr, RegRmwMask) {
+    // rmw_mask only includes plain RW fields
+    static_assert(simple_reg::rmw_mask == 0xFF);
+    static_assert(special_reg::rmw_mask == 0);        // no plain RW
+    static_assert(rw_w1c_reg::rmw_mask == 0x0F);      // only data[3:0]
+    static_assert(rw_w1c_reg::writable_mask == 0xFF);  // both fields writable
 }
 
 TEST(Constexpr, RegProperties) {
