@@ -1,0 +1,17 @@
+= ROS (Register Optimization with Safety) User Guide
+Vladislav Rykov <rykovinternational@gmail.com>
+:revnumber: 0.0
+:revdate: January 20, 2025
+:source-highlighter: rouge
+:rouge-style: base16.dark
+:source-language: c++
+:stem:
+:toc: left
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:mermaid-puppeteer-config: puppeteer_config.json
+
+.. include::overview.adoc[]
+.. include::api_reference.adoc[]
+.. include::theory.adoc[]

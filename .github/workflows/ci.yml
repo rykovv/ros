@@ -1,0 +1,137 @@
+name: CI
+permissions: read-all
+
+on:
+  workflow_dispatch:
+  merge_group:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  CMAKE_GENERATOR: Ninja
+  CXX_STANDARD: 20
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        version: [12, 13, 14, 15, 16, 18, 19, 20, 21]
+        include:
+          # --- GCC defaults ---
+          - compiler: gcc
+            toolchain_root: "/usr"
+
+          - compiler: gcc
+            version: 12
+            cc: gcc-12
+            cxx: g++-12
+            install: sudo apt update && sudo apt install -y gcc-12 g++-12
+
+          - compiler: gcc
+            version: 13
+            cc: gcc-13
+            cxx: g++-13
+            install: sudo apt update && sudo apt install -y gcc-13 g++-13
+
+          - compiler: gcc
+            version: 14
+            cc: gcc-14
+            cxx: g++-14
+            install: sudo apt update && sudo apt install -y gcc-14 g++-14
+
+          - compiler: gcc
+            version: 15
+            cc: gcc-15
+            cxx: g++-15
+            install: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-15 g++-15
+
+          - compiler: gcc
+            version: 16
+            cc: gcc-16
+            cxx: g++-16
+            install: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-16 g++-16
+
+          # --- Clang defaults ---
+          - compiler: clang
+            cc: clang
+            cxx: clang++
+
+          - compiler: clang
+            version: 18
+            install: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 18
+            toolchain_root: "/usr/lib/llvm-18"
+
+          - compiler: clang
+            version: 19
+            install: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 19
+            toolchain_root: "/usr/lib/llvm-19"
+
+          - compiler: clang
+            version: 20
+            install: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 20
+            toolchain_root: "/usr/lib/llvm-20"
+
+          - compiler: clang
+            version: 21
+            install: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 21
+            toolchain_root: "/usr/lib/llvm-21"
+
+        exclude:
+          - compiler: gcc
+            version: 18
+          - compiler: gcc
+            version: 19
+          - compiler: gcc
+            version: 20
+          - compiler: gcc
+            version: 21
+          - compiler: clang
+            version: 12
+          - compiler: clang
+            version: 13
+          - compiler: clang
+            version: 15
+
+    name: ${{ matrix.compiler }}-${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          ${{ matrix.install }}
+          sudo apt install -y ninja-build
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.toolchain_root }}/bin/${{ matrix.cc }}
+          CXX: ${{ matrix.toolchain_root }}/bin/${{ matrix.cxx }}
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }}
+
+      - name: Build
+        run: cmake --build ${{ github.workspace }}/build
+
+      - name: Test
+        run: ctest --test-dir ${{ github.workspace }}/build/test --output-on-failure -j $(nproc)
+
+  all_pass:
+    runs-on: ubuntu-24.04
+    needs: [build_and_test]
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Gate
+        if: >-
+          ${{
+               contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+          }}
+        run: exit 1
