@@ -1,18 +1,19 @@
 #pragma once
 
+#include <type_traits>
+
 #include <ros/access.hpp>
 #include <ros/concepts.hpp>
 #include <ros/error.hpp>
 #include <ros/literals.hpp>
 #include <ros/operations.hpp>
 
-#include <type_traits>
-
 namespace ros {
 
 namespace utils {
 template <typename Enum>
-[[nodiscard]] constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept {
+[[nodiscard]] constexpr std::underlying_type_t<Enum>
+to_underlying(Enum e) noexcept {
     return static_cast<std::underlying_type_t<Enum>>(e);
 }
 } // namespace utils
@@ -60,10 +61,12 @@ struct field {
 
     constexpr static value_type_r mask = []() -> value_type_r {
         if (msb.value != lsb.value) {
-            if constexpr (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
+            if constexpr (msb.value ==
+                          std::numeric_limits<value_type_r>::digits - 1) {
                 return static_cast<value_type_r>(~((1u << lsb.value) - 1));
             } else {
-                return static_cast<value_type_r>(((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1));
+                return static_cast<value_type_r>(((1u << (msb.value + 1)) - 1) &
+                                                 ~((1u << lsb.value) - 1));
             }
         } else {
             return static_cast<value_type_r>(1u << msb.value);
@@ -78,7 +81,7 @@ struct field {
         };
     }();
 
-     constexpr static value_type_r write_mask = []() {
+    constexpr static value_type_r write_mask = []() {
         if constexpr (at == access_type::WO || at == access_type::RW ||
                       at == access_type::RW_0C || at == access_type::RW_1C ||
                       at == access_type::RW_0S || at == access_type::RW_1S ||
@@ -89,7 +92,7 @@ struct field {
         }
     }();
 
-     constexpr static value_type_r read_mask = []() {
+    constexpr static value_type_r read_mask = []() {
         if constexpr (at == access_type::RO || at == access_type::RW ||
                       at == access_type::RC || at == access_type::RS) {
             return mask;
@@ -184,7 +187,8 @@ struct field {
 
     constexpr auto operator()(std::invocable<value_type> auto f) const
         -> detail::field_assignment_invocable<decltype(f), field, field> {
-        static_assert(readwritable(), "Invocable write requires RW field access_type");
+        static_assert(readwritable(),
+                      "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<decltype(f), field, field>{f};
     }
@@ -194,7 +198,8 @@ struct field {
                                 typename Fields::value_type...>
     constexpr auto operator()(F f, Field0 f0, Fields... fs) const
         -> detail::field_assignment_invocable<F, field, Field0, Fields...> {
-        static_assert(readwritable(), "Invocable write requires RW field access_type");
+        static_assert(readwritable(),
+                      "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<F, field, Field0, Fields...>{
             f};
@@ -212,7 +217,7 @@ struct field {
 
     constexpr static value_type runtime_check(value_type value) {
         static_assert(writable(), "Cannot write non-writable field");
-        
+
         value_type safe_val;
         if (static_cast<value_type_r>(value) <= mask >> lsb.value) {
             safe_val = value;
@@ -233,20 +238,15 @@ struct field {
                 utils::to_underlying(access_type::R)) != 0;
     }
 
-    constexpr static bool readwritable() {
-        return writable() && readable();
-    }
-    
-    constexpr static bool writeonly() {
-        return writable() && not readable();
-    }
+    constexpr static bool readwritable() { return writable() && readable(); }
 
-    constexpr static bool readonly() {
-        return not writable() && readable();
-    }
+    constexpr static bool writeonly() { return writable() && not readable(); }
+
+    constexpr static bool readonly() { return not writable() && readable(); }
 
     constexpr static value_type_r identity() {
-        if constexpr (access == access_type::RW_0C || access == access_type::RW_0S) {
+        if constexpr (access == access_type::RW_0C ||
+                      access == access_type::RW_0S) {
             return mask;
         } else {
             /* access == access_type::RW    ||

@@ -45,7 +45,8 @@ concept one_assignment_per_register =
     one_register_assignment_per_apply_v<Ops...>;
 
 template <typename... Ops>
-concept register_operations = ((is_derived_reg_v<Ops> || is_register_assignment_v<Ops>) && ...);
+concept register_operations =
+    ((is_derived_reg_v<Ops> || is_register_assignment_v<Ops>) && ...);
 
 template <typename Op, typename... Ops>
 concept register_constraints =

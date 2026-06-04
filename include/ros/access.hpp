@@ -5,6 +5,7 @@
 
 namespace ros {
 // Based on IEEE 1685 (IP-XACT) and ARM CMSIS-SVD
+// clang-format off
 enum class access_type : std::uint8_t {    
     RSVD  = 0b0'0'00'00'00,
     RO    = 0b0'0'00'00'01,
@@ -23,6 +24,7 @@ enum class access_type : std::uint8_t {
     W     = WO,
     RESERVED = RSVD
 };
+// clang-format on
 
 struct bus {
     template <typename T, typename Addr> static T read(Addr address);

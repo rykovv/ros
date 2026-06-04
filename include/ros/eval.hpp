@@ -148,10 +148,9 @@ evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_field_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    decltype(filter::tuple_filter<detail::is_field_read>(
+        std::make_tuple(op, ops...)))> {
     using value_type = typename Op::type::value_type_r;
     using field_type = typename Op::type;
     using reg = typename Op::type::reg;
@@ -182,7 +181,7 @@ auto eval(Op op, Ops... ops)
         detail::get_write_mask<value_type>(writes_ct);
     constexpr value_type write_mask_rt =
         detail::get_write_mask<value_type>(writes_rt);
-    // currently captures only the assigned field, but it can be 
+    // currently captures only the assigned field, but it can be
     // extended to capture all fields that are used in the invocable
     constexpr value_type write_mask_inv =
         detail::get_write_mask<value_type>(writes_inv);
@@ -199,12 +198,13 @@ auto eval(Op op, Ops... ops)
             // value can hold value that may trigger clear/set/toggle.
             // to avoid unintended side effect, preserve the identity for
             // special fields so no side effect is triggered
-            value_type tmp_read = bus::template read<value_type>(reg::address::value);
+            value_type tmp_read =
+                bus::template read<value_type>(reg::address::value);
             // set only rmw-able bits (value guaranteed to be zero for rmw bits)
             value |= (tmp_read & rmw_mask);
         } else if constexpr (has_invocable_writes) {
             // invocable writes will get raw fields.
-            // once the mask of invocable writes includes all fields used 
+            // once the mask of invocable writes includes all fields used
             // in the invocable, will need to set unused bits to identity.
             value = bus::template read<value_type>(reg::address::value);
         }
@@ -244,10 +244,9 @@ auto eval(Op op, Ops... ops)
 
 template <typename Op, typename... Ops>
     requires detail::register_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_register_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    decltype(filter::tuple_filter<detail::is_register_read>(
+        std::make_tuple(op, ops...)))> {
     // 1. evaluate reads if any (may make sense to sort)
     // 2. evaluate invocable writes (doesn't make sense to sort. the point of
     // sorting
@@ -313,7 +312,8 @@ auto eval(Op op, Ops... ops)
             write::type::bus::write(write::value, write::type::address::value);
         } else {
             []<typename... Ws>(std::tuple<Ws...>) -> void {
-                (Ws::type::bus::write(Ws::value, Ws::type::address::value), ...);
+                (Ws::type::bus::write(Ws::value, Ws::type::address::value),
+                 ...);
             }(writes_ct);
         }
     }
@@ -322,7 +322,8 @@ auto eval(Op op, Ops... ops)
         if constexpr (std::tuple_size_v<decltype(writes_rt)> == 1) {
             // if there's only one write, just call write without bundling
             using write = std::tuple_element_t<0, decltype(writes_rt)>;
-            write::type::bus::write(std::get<write>(writes_rt).value, write::type::address::value);
+            write::type::bus::write(std::get<write>(writes_rt).value,
+                                    write::type::address::value);
         } else {
             []<typename... Ws>(std::tuple<Ws...> ws) -> void {
                 (Ws::type::bus::write(std::get<Ws>(ws).value,

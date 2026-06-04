@@ -1,0 +1,18 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^".*'
+    Priority: 1
+  - Regex: '^<(eval|reg|field|literals|access|operations|constant|error|filter|reflection|concepts|type_traits)/.*'
+    Priority: 6
+  - Regex: '^<(boost|catch2|fmt|fuzztest|gmock|gtest|rapidcheck|snitch)/.*'
+    Priority: 8
+  - Regex: '^<GUnit.h>'
+    Priority: 9
+  - Regex: '<([a-z_])+>'
+    Priority: 10
+
+QualifierAlignment: Custom
+QualifierOrder: ['constexpr', 'static', 'inline', 'type', 'const', 'volatile']

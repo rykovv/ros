@@ -46,7 +46,7 @@ constexpr typename reg::value_type get_rmw_mask(reg const &r) {
 
 template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_writable_mask_helper(std::tuple<T, Ts...> const &t,
-                                   std::index_sequence<Idx...>) ->
+                                        std::index_sequence<Idx...>) ->
     typename T::value_type_r {
     return ((std::get<Idx>(t).writable() ? std::get<Idx>(t).mask : 0) | ...);
 };
@@ -61,7 +61,7 @@ constexpr typename reg::value_type get_writable_mask(reg const &r) {
 // register operations safety
 template <typename Tup, std::size_t... Idx>
 constexpr bool has_wo_helper(access_type at, Tup const &t,
-                                      std::index_sequence<Idx...>) {
+                             std::index_sequence<Idx...>) {
     return (std::tuple_element_t<Idx, Tup>::writeonly() or ...);
 };
 
@@ -69,12 +69,12 @@ template <typename reg> constexpr bool has_wo_access(reg const &r) {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return has_wo_helper(access_type::W, tup,
-                                  std::make_index_sequence<tup_size>{});
+                         std::make_index_sequence<tup_size>{});
 }
 
 template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_identity_mask_helper(std::tuple<T, Ts...> const &t,
-                                   std::index_sequence<Idx...>) ->
+                                        std::index_sequence<Idx...>) ->
     typename T::value_type_r {
     return (std::tuple_element_t<Idx, std::tuple<T, Ts...>>::identity() | ...);
 };
@@ -88,7 +88,9 @@ constexpr typename reg::value_type get_identity_mask(reg const &r) {
 
 template <typename Tup, std::size_t... Idx>
 constexpr auto get_ro_mask_helper(Tup const &t, std::index_sequence<Idx...>) {
-    return ((std::tuple_element_t<Idx, Tup>::readonly() ? std::get<Idx>(t).mask : 0) | ...);
+    return ((std::tuple_element_t<Idx, Tup>::readonly() ? std::get<Idx>(t).mask
+                                                        : 0) |
+            ...);
 };
 
 template <typename reg, typename T = reg::value_type>
@@ -113,9 +115,11 @@ struct reg {
        they have predefined value that won't modify HW state */
     constexpr static value_type identity = detail::get_identity_mask(reg_der{});
     constexpr static value_type rmw_mask = detail::get_rmw_mask(reg_der{});
-    constexpr static value_type writable_mask = detail::get_writable_mask(reg_der{});
+    constexpr static value_type writable_mask =
+        detail::get_writable_mask(reg_der{});
     constexpr static value_type ro_mask = detail::get_ro_mask(reg_der{});
-    constexpr static bool physically_readable = not detail::has_wo_access(reg_der{});
+    constexpr static bool physically_readable =
+        not detail::has_wo_access(reg_der{});
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
@@ -189,7 +193,8 @@ namespace detail {
 // template <typename reg_derived, detail::register_type T, detail::addr addr,
 //           typename bus_t>
 // struct is_reg_op<reg<reg_derived, T, addr, bus_t>> : std::true_type {};
-// struct is_reg<reg<reg_derived, T, addr, bus_t>> : std::is_base_of<reg<reg_derived, T, addr, bus_t>, reg_derived> {};
+// struct is_reg<reg<reg_derived, T, addr, bus_t>> :
+// std::is_base_of<reg<reg_derived, T, addr, bus_t>, reg_derived> {};
 } // namespace detail
 
 } // namespace ros
