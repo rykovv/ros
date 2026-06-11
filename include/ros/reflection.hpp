@@ -4,11 +4,12 @@ namespace ros {
 namespace reflect {
 
 struct universal_type {
+    // NOLINTNEXTLINE(google-explicit-constructor)
     template <typename T> operator T() {}
 };
 
 template <typename T> consteval auto get_struct_size(auto... members) {
-    if constexpr (requires { T{members...}; } == false) {
+    if constexpr (not requires { T{members...}; }) {
         return sizeof...(members) - 2; // self and unsafe members
     } else {
         return get_struct_size<T>(members..., universal_type{});

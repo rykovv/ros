@@ -27,10 +27,10 @@ enum class access_type : std::uint8_t {
 // clang-format on
 
 struct bus {
-    template <typename T, typename Addr> static T read(Addr address);
+    template <typename T, typename Addr> static auto read(Addr address) -> T;
     template <typename T, typename Addr> static void write(T val, Addr address);
     template <typename... AdjacentAddrs, typename... ValueTypes>
-    static std::tuple<ValueTypes...> read(std::tuple<AdjacentAddrs...> addrs);
+    static auto read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
     template <typename... AdjacentAddrs, typename... ValueTypes>
     static void write(std::tuple<AdjacentAddrs...> addrs,
                       std::tuple<ValueTypes...> values);

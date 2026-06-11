@@ -19,7 +19,7 @@ constexpr field_error_handler<Field> clamp_handler = [](T v) -> T {
     using value_type_r = typename Field::value_type_r;
     std::cout << "clamp handler with " << static_cast<value_type_r>(v)
               << std::endl;
-    return T{((1 << Field::length) - 1)};
+    return T{((1u << Field::length) - 1)};
 };
 
 template <typename Field>

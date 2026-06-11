@@ -73,7 +73,7 @@ TEST_F(ApplyFieldTest, RuntimeOverflow_ClampedWrite) {
 
     ASSERT_EQ(bus_log.size(), 2u);
     using low = decltype(simple_reg::low_nibble);
-    uint8_t clamped = (1 << low::length) - 1;
+    uint8_t clamped = (1u << low::length) - 1;
     EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(clamped));
 }
 

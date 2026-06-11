@@ -16,7 +16,6 @@ Checks: >
   google-explicit-constructor,
   google-readability-casting,
   google-runtime-int,
-  hicpp-signed-bitwise,
   misc-misplaced-const,
   misc-non-copyable-objects,
   misc-redundant-expression,
@@ -35,7 +34,5 @@ Checks: >
   -readability-qualified-auto,
   -readability-uppercase-literal-suffix
 WarningsAsErrors: '*'
-HeaderFilterRegex: ''
-AnalyzeTemporaryDtors: false
+HeaderFilterRegex: 'include/ros/.*'
 FormatStyle: file
-...
