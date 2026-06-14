@@ -1,0 +1,6 @@
+---
+InheritParentConfig: true
+Checks: >
+  -readability-static-accessed-through-instance,
+  -modernize-use-trailing-return-type
+...

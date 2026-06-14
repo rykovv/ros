@@ -34,5 +34,5 @@ Checks: >
   -readability-qualified-auto,
   -readability-uppercase-literal-suffix
 WarningsAsErrors: '*'
-HeaderFilterRegex: 'include/ros/.*'
+HeaderFilterRegex: '.*/include/ros/.*'
 FormatStyle: file
