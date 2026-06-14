@@ -13,6 +13,7 @@ env:
   DEBIAN_FRONTEND: noninteractive
   CMAKE_GENERATOR: Ninja
   CXX_STANDARD: 20
+  DEFAULT_LLVM_VERSION: 18
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -130,24 +131,51 @@ jobs:
 
       - name: Install build tools
         run: |
-          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 18
-          sudo apt install -y ninja-build clang-tidy-18
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh ${{ env.DEFAULT_LLVM_VERSION }}
+          sudo apt install -y ninja-build clang-tidy-${{ env.DEFAULT_LLVM_VERSION }}
 
       - name: Configure
         env:
-          CC: /usr/lib/llvm-18/bin/clang
-          CXX: /usr/lib/llvm-18/bin/clang++
+          CC: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang
+          CXX: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang++
         run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build
         run: cmake --build ${{ github.workspace }}/build
 
       - name: Clang-Tidy
-        run: run-clang-tidy-18 -p ${{ github.workspace }}/build 'test/unit/.*\.cpp'
+        run: run-clang-tidy-${{ env.DEFAULT_LLVM_VERSION }} -p ${{ github.workspace }}/build 'test/unit/.*\.cpp'
+
+  sanitize:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address, undefined, thread]
+    name: sanitize-${{ matrix.sanitizer }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh ${{ env.DEFAULT_LLVM_VERSION }}
+          sudo apt install -y ninja-build
+
+      - name: Configure
+        env:
+          CC: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang
+          CXX: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang++
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }} -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+
+      - name: Build
+        run: cmake --build ${{ github.workspace }}/build
+
+      - name: Test
+        run: ctest --test-dir ${{ github.workspace }}/build/test --output-on-failure -j $(nproc)
 
   all_pass:
     runs-on: ubuntu-24.04
-    needs: [build_and_test, clang_tidy]
+    needs: [build_and_test, clang_tidy, sanitize]
     if: ${{ !cancelled() }}
     steps:
       - name: Gate
