@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <ros/type_traits.hpp>
 
 namespace ros {
