@@ -288,8 +288,42 @@ eval(cr.mode.unsafe = raw_value);
 
 ```bash
 cmake -Bbuild -GNinja
-ninja -C build
-ctest --test-dir build/test
+cmake --build build
+ctest --test-dir build/test --output-on-failure
+```
+
+## Quality checks
+
+### Clang-Tidy
+
+Requires `clang`, `clang-tidy`, and `run-clang-tidy`:
+
+```bash
+cmake -Bbuild -GNinja
+cmake --build build -t clang-tidy
+```
+
+### Sanitizers
+
+Build with AddressSanitizer or UndefinedBehaviorSanitizer:
+
+```bash
+cmake -Bbuild-asan -GNinja -DROS_SANITIZER=address
+cmake --build build-asan
+ctest --test-dir build-asan/test --output-on-failure
+
+cmake -Bbuild-ubsan -GNinja -DROS_SANITIZER=undefined
+cmake --build build-ubsan
+ctest --test-dir build-ubsan/test --output-on-failure
+```
+
+### Valgrind
+
+Requires `valgrind`:
+
+```bash
+cmake -Bbuild -GNinja
+cmake --build build -t valgrind
 ```
 
 ## License

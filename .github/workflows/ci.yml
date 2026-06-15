@@ -139,13 +139,10 @@ jobs:
         env:
           CC: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang
           CXX: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang++
-        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
-      - name: Build
-        run: cmake --build ${{ github.workspace }}/build
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }}
 
       - name: Clang-Tidy
-        run: run-clang-tidy-${{ env.DEFAULT_LLVM_VERSION }} -p ${{ github.workspace }}/build 'test/unit/.*\.cpp'
+        run: cmake --build ${{ github.workspace }}/build -t clang-tidy
 
   sanitize:
     runs-on: ubuntu-24.04
@@ -166,7 +163,7 @@ jobs:
         env:
           CC: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang
           CXX: /usr/lib/llvm-${{ env.DEFAULT_LLVM_VERSION }}/bin/clang++
-        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }} -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }} -DROS_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
         run: cmake --build ${{ github.workspace }}/build
@@ -188,34 +185,8 @@ jobs:
           CXX: /usr/bin/g++-${{ env.DEFAULT_GCC_VERSION }}
         run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }}
 
-      - name: Build
-        run: cmake --build ${{ github.workspace }}/build
-
-      - name: Test
-        working-directory: ${{ github.workspace }}/build/test
-        run: |
-          set +e
-          ctest --output-on-failure -j $(nproc) \
-            --overwrite MemoryCheckCommand=/usr/bin/valgrind \
-            --overwrite MemoryCheckCommandOptions="--leak-check=full --error-exitcode=1" \
-            -T memcheck
-          RESULT=$?
-          set -e
-
-          if grep -rl "ERROR SUMMARY: [^0]" ./Testing/Temporary/MemoryChecker.*.log 2>/dev/null; then
-            echo "## Valgrind failures" >> $GITHUB_STEP_SUMMARY
-            for f in ./Testing/Temporary/MemoryChecker.*.log; do
-              if grep -q "ERROR SUMMARY: [^0]" "$f" 2>/dev/null; then
-                echo '```' >> $GITHUB_STEP_SUMMARY
-                cat "$f" >> $GITHUB_STEP_SUMMARY
-                echo '```' >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-            exit 1
-          fi
-
-          echo "No memory errors detected."
-          exit $RESULT
+      - name: Valgrind
+        run: cmake --build ${{ github.workspace }}/build -t valgrind
 
   all_pass:
     runs-on: ubuntu-24.04

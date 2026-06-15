@@ -37,12 +37,7 @@ target_sources(
 	include/ros/type_traits.hpp)
 
 if(PROJECT_IS_TOP_LEVEL)
-    # add_docs(docs)
-    # clang_tidy_interface(ros)
     add_subdirectory(test)
 else()
     add_subdirectory(include)
 endif()
-
-
-# find include -regex '.*\(cpp\|hpp\)' -exec /usr/bin/clang-format-18 -i {} \;

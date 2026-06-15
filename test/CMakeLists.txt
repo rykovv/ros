@@ -1,3 +1,5 @@
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include(${CMAKE_SOURCE_DIR}/cmake/quality-checks.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/get_cpm.cmake)
 
 CPMAddPackage(
