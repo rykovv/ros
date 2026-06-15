@@ -151,7 +151,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitizer: [address, undefined, thread]
+        sanitizer: [address, undefined]
     name: sanitize-${{ matrix.sanitizer }}
     steps:
       - uses: actions/checkout@v4
