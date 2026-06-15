@@ -1,18 +1,19 @@
 #pragma once
 
+#include <type_traits>
+
 #include <ros/access.hpp>
 #include <ros/concepts.hpp>
 #include <ros/error.hpp>
 #include <ros/literals.hpp>
 #include <ros/operations.hpp>
 
-#include <type_traits>
-
 namespace ros {
 
 namespace utils {
 template <typename Enum>
-[[nodiscard]] constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept {
+[[nodiscard]] constexpr auto
+to_underlying(Enum e) noexcept -> std::underlying_type_t<Enum> {
     return static_cast<std::underlying_type_t<Enum>>(e);
 }
 } // namespace utils
@@ -22,6 +23,7 @@ namespace detail {
 template <typename Field> struct unsafe_field_operations_handler {
     using value_type = typename Field::value_type;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto const &rhs) const
         -> field_assignment_rt<Field> {
         static_assert(Field::access != access_type::RO,
@@ -30,6 +32,7 @@ template <typename Field> struct unsafe_field_operations_handler {
         return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto &&rhs) const -> field_assignment_rt<Field> {
         static_assert(Field::access != access_type::RO,
                       "cannot write read-only field");
@@ -60,10 +63,12 @@ struct field {
 
     constexpr static value_type_r mask = []() -> value_type_r {
         if (msb.value != lsb.value) {
-            if constexpr (msb.value == std::numeric_limits<value_type_r>::digits - 1) {
+            if constexpr (msb.value ==
+                          std::numeric_limits<value_type_r>::digits - 1) {
                 return static_cast<value_type_r>(~((1u << lsb.value) - 1));
             } else {
-                return static_cast<value_type_r>(((1u << (msb.value + 1)) - 1) & ~((1u << lsb.value) - 1));
+                return static_cast<value_type_r>(((1u << (msb.value + 1)) - 1) &
+                                                 ~((1u << lsb.value) - 1));
             }
         } else {
             return static_cast<value_type_r>(1u << msb.value);
@@ -78,7 +83,7 @@ struct field {
         };
     }();
 
-     constexpr static value_type_r write_mask = []() {
+    constexpr static value_type_r write_mask = []() {
         if constexpr (at == access_type::WO || at == access_type::RW ||
                       at == access_type::RW_0C || at == access_type::RW_1C ||
                       at == access_type::RW_0S || at == access_type::RW_1S ||
@@ -89,7 +94,7 @@ struct field {
         }
     }();
 
-     constexpr static value_type_r read_mask = []() {
+    constexpr static value_type_r read_mask = []() {
         if constexpr (at == access_type::RO || at == access_type::RW ||
                       at == access_type::RC || at == access_type::RS) {
             return mask;
@@ -102,6 +107,7 @@ struct field {
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(detail::field_value<U, val>) const
         -> detail::field_assignment_ct<field, val> {
         static_assert(writable(), "Cannot write non-writable field");
@@ -145,6 +151,7 @@ struct field {
         requires(std::unsigned_integral<T> &&
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(T const &rhs) const
         -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
@@ -159,6 +166,7 @@ struct field {
         requires(std::unsigned_integral<T> &&
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= msb.value - lsb.value)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(T &&rhs) const
         -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
@@ -171,6 +179,7 @@ struct field {
 
     template <typename EnumT>
         requires(std::is_enum_v<EnumT>)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(EnumT val) const
         -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
@@ -184,7 +193,8 @@ struct field {
 
     constexpr auto operator()(std::invocable<value_type> auto f) const
         -> detail::field_assignment_invocable<decltype(f), field, field> {
-        static_assert(readwritable(), "Invocable write requires RW field access_type");
+        static_assert(readwritable(),
+                      "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<decltype(f), field, field>{f};
     }
@@ -194,25 +204,29 @@ struct field {
                                 typename Fields::value_type...>
     constexpr auto operator()(F f, Field0 f0, Fields... fs) const
         -> detail::field_assignment_invocable<F, field, Field0, Fields...> {
-        static_assert(readwritable(), "Invocable write requires RW field access_type");
+        static_assert(readwritable(),
+                      "Invocable write requires RW field access_type");
 
         return detail::field_assignment_invocable<F, field, Field0, Fields...>{
             f};
     }
 
-    constexpr static value_type_r to_reg(value_type_r reg_value,
-                                         value_type value) {
+    constexpr static auto to_reg(value_type_r reg_value, value_type value) 
+        -> value_type_r {
         return (reg_value & ~mask) |
                (static_cast<value_type_r>(value) << lsb.value) & mask;
     }
 
-    constexpr static value_type to_field(value_type_r value) {
-        return (static_cast<value_type_r>(value) & mask) >> lsb.value;
+    constexpr static auto to_field(value_type_r value) -> value_type {
+        // this can be safely ignored because the value cannot be a signed int, 
+        // see field_selectable concept.
+        // NOLINTNEXTLINE(hicpp-signed-bitwise)
+        return (value & mask) >> lsb.value;
     }
 
-    constexpr static value_type runtime_check(value_type value) {
+    constexpr static auto runtime_check(value_type value) -> value_type {
         static_assert(writable(), "Cannot write non-writable field");
-        
+
         value_type safe_val;
         if (static_cast<value_type_r>(value) <= mask >> lsb.value) {
             safe_val = value;
@@ -223,30 +237,25 @@ struct field {
         return safe_val;
     }
 
-    constexpr static bool writable() {
+    constexpr static auto writable() -> bool {
         return (utils::to_underlying(access) &
                 utils::to_underlying(access_type::W)) != 0;
     }
 
-    constexpr static bool readable() {
+    constexpr static auto readable() -> bool {
         return (utils::to_underlying(access) &
                 utils::to_underlying(access_type::R)) != 0;
     }
 
-    constexpr static bool readwritable() {
-        return writable() && readable();
-    }
-    
-    constexpr static bool writeonly() {
-        return writable() && not readable();
-    }
+    constexpr static auto readwritable() -> bool { return writable() && readable(); }
 
-    constexpr static bool readonly() {
-        return not writable() && readable();
-    }
+    constexpr static auto writeonly() -> bool { return writable() && not readable(); }
 
-    constexpr static value_type_r identity() {
-        if constexpr (access == access_type::RW_0C || access == access_type::RW_0S) {
+    constexpr static auto readonly() -> bool { return not writable() && readable(); }
+
+    constexpr static auto identity() -> value_type_r {
+        if constexpr (access == access_type::RW_0C ||
+                      access == access_type::RW_0S) {
             return mask;
         } else {
             /* access == access_type::RW    ||

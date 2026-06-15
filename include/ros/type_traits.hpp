@@ -83,14 +83,18 @@ struct is_register_assignment_invocable<
     : std::true_type {};
 
 // base case forward declaration for specialization in reg.hpp
-template <typename T> struct is_register_assignment : std::is_base_of<register_assignment<typename T::type>, T> {};
-template <typename T> constexpr bool is_register_assignment_v = is_register_assignment<T>::value;
+template <typename T>
+struct is_register_assignment
+    : std::is_base_of<register_assignment<typename T::type>, T> {};
+template <typename T>
+constexpr bool is_register_assignment_v = is_register_assignment<T>::value;
 
 template <typename T> struct is_derived_reg {
-    static constexpr bool value = std::is_base_of_v<typename T::type, T>
-        and not std::is_same_v<typename T::type, T>;
+    constexpr static bool value = std::is_base_of_v<typename T::type, T> and
+                                  not std::is_same_v<typename T::type, T>;
 };
-template <typename T> constexpr bool is_derived_reg_v = is_derived_reg<T>::value;
+template <typename T>
+constexpr bool is_derived_reg_v = is_derived_reg<T>::value;
 
 template <typename T> struct is_register_read : is_derived_reg<T> {};
 

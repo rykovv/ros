@@ -1,9 +1,8 @@
 #pragma once
 
-#include <ros/constant.hpp>
-
 #include <concepts>
-// #include <ros/concepts.hpp>
+
+#include <ros/constant.hpp>
 
 #pragma once
 
@@ -41,31 +40,31 @@ template <std::unsigned_integral AddrT, AddrT val> struct addr {
 namespace literals {
 
 template <char... Chars> constexpr auto operator""_f() {
-    constexpr std::size_t new_value =
+    constexpr auto new_value =
         ros::detail::to_constant<std::size_t, Chars...>();
     return detail::field_value<std::size_t, new_value>{};
 }
 
 template <char... Chars> constexpr auto operator""_r() {
-    constexpr std::size_t new_value =
+    constexpr auto new_value =
         ros::detail::to_constant<std::size_t, Chars...>();
     return detail::register_value<std::size_t, new_value>{};
 }
 
 template <char... Chars> constexpr auto operator""_msb() {
-    constexpr std::size_t new_value =
+    constexpr auto new_value =
         ros::detail::to_constant<std::size_t, Chars...>();
     return detail::msb<std::size_t, new_value>{};
 }
 
 template <char... Chars> constexpr auto operator""_lsb() {
-    constexpr std::size_t new_value =
+    constexpr auto new_value =
         ros::detail::to_constant<std::size_t, Chars...>();
     return detail::lsb<std::size_t, new_value>{};
 }
 
 template <char... Chars> constexpr auto operator""_addr() {
-    constexpr std::size_t new_value =
+    constexpr auto new_value =
         ros::detail::to_constant<std::size_t, Chars...>();
     return detail::addr<std::size_t, new_value>{};
 }

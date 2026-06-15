@@ -5,3 +5,5 @@ CMakeCache.txt
 *.ninja
 test/Testing/
 Testing/
+build-asan/
+build-ubsan/

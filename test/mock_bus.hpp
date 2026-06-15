@@ -8,7 +8,7 @@
 namespace test {
 
 struct bus_event {
-    enum class type { read, write };
+    enum class type : std::uint8_t { read, write };
     type op;
     std::size_t address;
     std::uint32_t value;
@@ -24,7 +24,7 @@ inline void reset_bus() {
 
 struct mock_bus {
     template <typename T, typename Addr>
-    static T read(Addr address) {
+    static auto read(Addr address) -> T {
         bus_log.push_back({bus_event::type::read, static_cast<std::size_t>(address), bus_read_value});
         return static_cast<T>(bus_read_value);
     }
@@ -35,7 +35,7 @@ struct mock_bus {
     }
 
     template <typename... AdjacentAddrs, typename... ValueTypes>
-    static std::tuple<ValueTypes...> read(std::tuple<AdjacentAddrs...> addrs);
+    static auto read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
 
     template <typename... AdjacentAddrs, typename... ValueTypes>
     static void write(std::tuple<AdjacentAddrs...> addrs, std::tuple<ValueTypes...> values);

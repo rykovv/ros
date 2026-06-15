@@ -16,7 +16,7 @@ struct field_assignment_ct : field_assignment<Field> {
 template <typename Field> struct field_assignment_rt : field_assignment<Field> {
     using value_type = typename Field::value_type;
 
-    constexpr field_assignment_rt(value_type v) : value{v} {}
+    constexpr explicit field_assignment_rt(value_type v) : value{v} {}
 
     value_type value;
 };
@@ -25,7 +25,7 @@ template <typename F, typename FieldOp, typename Field0, typename... Fields>
 struct field_assignment_invocable : field_assignment<FieldOp> {
     using fields = std::tuple<Field0, Fields...>;
 
-    field_assignment_invocable(F f) : lambda_{f} {}
+    explicit field_assignment_invocable(F f) : lambda_{f} {}
 
     constexpr auto operator()(typename Field0::value_type f0,
                               typename Fields::value_type... fs) ->
@@ -53,7 +53,7 @@ template <typename Register>
 struct register_assignment_rt : register_assignment<Register> {
     using value_type = typename Register::value_type;
 
-    constexpr register_assignment_rt(value_type v) : value{v} {}
+    constexpr explicit register_assignment_rt(value_type v) : value{v} {}
 
     value_type value;
 };
@@ -64,7 +64,7 @@ struct register_assignment_invocable : register_assignment<RegisterOp> {
     using registerOp = RegisterOp;
     using registers = std::tuple<Register0, Registers...>;
 
-    register_assignment_invocable(F f) : lambda_{f} {}
+    explicit register_assignment_invocable(F f) : lambda_{f} {}
 
     constexpr auto operator()(typename Register0::value_type r0,
                               typename Registers::value_type... rs) ->

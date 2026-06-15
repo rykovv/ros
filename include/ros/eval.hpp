@@ -24,21 +24,21 @@ template <typename... Ops>
 using return_reads_t = typename return_reads<Ops...>::type;
 
 template <typename T, typename Tuple, std::size_t... Idx>
-constexpr T get_write_value_helper(Tuple tup, std::index_sequence<Idx...>) {
+constexpr auto get_write_value_helper(Tuple tup, std::index_sequence<Idx...>) -> T {
     return (std::tuple_element_t<Idx, Tuple>::type::to_reg(
                 T{0}, std::get<Idx>(tup).value) |
             ...);
 }
 
 template <typename T, typename... Ts>
-constexpr T get_write_value(T value, T mask, std::tuple<Ts...> const &tup) {
+constexpr auto get_write_value(T value, T mask, std::tuple<Ts...> const &tup) -> T {
     return (value & ~mask) |
            get_write_value_helper<T>(tup,
                                      std::make_index_sequence<sizeof...(Ts)>{});
 }
 
 template <typename T>
-constexpr T get_write_value(T value, T mask, std::tuple<> const &tup) {
+constexpr auto get_write_value(T value, T mask, std::tuple<> const &tup) -> T {
     return value;
 }
 
@@ -48,28 +48,30 @@ constexpr auto get_write_mask_helper(Tuple const &tup,
     return (std::tuple_element_t<Idx, Tuple>::type::mask | ...);
 };
 
-template <typename T> constexpr T get_write_mask(std::tuple<> const &tup) {
+template <typename T> constexpr auto get_write_mask(std::tuple<> const &tup) -> T {
     return 0;
 }
 
 template <typename T, typename... Ts>
-constexpr T get_write_mask(std::tuple<Ts...> const &tup) {
+constexpr auto get_write_mask(std::tuple<Ts...> const &tup) -> T {
     return get_write_mask_helper(tup,
                                  std::make_index_sequence<sizeof...(Ts)>{});
 }
 
 template <typename T, typename InvocableWrite, typename TupleFields,
           std::size_t... Idx>
-constexpr T get_invocable_write_fields_helper(T value, InvocableWrite iw,
+constexpr auto get_invocable_write_fields_helper(T value, InvocableWrite iw,
                                               TupleFields tup,
-                                              std::index_sequence<Idx...>) {
+                                              std::index_sequence<Idx...>)
+    -> T {
     // get each field
     return iw(std::tuple_element_t<Idx, TupleFields>::to_field(value)...);
 }
 
 template <typename T, typename TupleInvocableWrites, std::size_t... Idx>
-constexpr T get_invocable_write_value_helper(T value, TupleInvocableWrites tup,
-                                             std::index_sequence<Idx...>) {
+constexpr auto get_invocable_write_value_helper(T value, TupleInvocableWrites tup,
+                                             std::index_sequence<Idx...>) 
+    -> T {
     return (
         std::tuple_element_t<
             Idx, TupleInvocableWrites>::type::to_reg( // wrap back everything to
@@ -91,9 +93,10 @@ constexpr T get_invocable_write_value_helper(T value, TupleInvocableWrites tup,
 }
 
 template <typename T, typename... InvocableWrites>
-constexpr T
+constexpr auto
 get_invocable_write_value(T value, T mask,
-                          std::tuple<InvocableWrites...> const &tup) {
+                          std::tuple<InvocableWrites...> const &tup) 
+    -> T {
     return (value & ~mask) |
            get_invocable_write_value_helper(
                value, tup,
@@ -101,8 +104,9 @@ get_invocable_write_value(T value, T mask,
 }
 
 template <typename T>
-constexpr T get_invocable_write_value(T value, T mask,
-                                      std::tuple<> const &tup) {
+constexpr auto get_invocable_write_value(T value, T mask,
+                                      std::tuple<> const &tup) 
+    -> T {
     return value;
 }
 
@@ -148,10 +152,9 @@ evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_field_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    decltype(filter::tuple_filter<detail::is_field_read>(
+        std::make_tuple(op, ops...)))> {
     using value_type = typename Op::type::value_type_r;
     using field_type = typename Op::type;
     using reg = typename Op::type::reg;
@@ -178,13 +181,13 @@ auto eval(Op op, Ops... ops)
                       "Cannot read non-readable field");
     }(reads);
 
-    constexpr value_type write_mask_ct =
+    constexpr auto write_mask_ct =
         detail::get_write_mask<value_type>(writes_ct);
-    constexpr value_type write_mask_rt =
+    constexpr auto write_mask_rt =
         detail::get_write_mask<value_type>(writes_rt);
-    // currently captures only the assigned field, but it can be 
+    // currently captures only the assigned field, but it can be
     // extended to capture all fields that are used in the invocable
-    constexpr value_type write_mask_inv =
+    constexpr auto write_mask_inv =
         detail::get_write_mask<value_type>(writes_inv);
     constexpr value_type write_mask =
         write_mask_ct | write_mask_rt | write_mask_inv;
@@ -199,12 +202,13 @@ auto eval(Op op, Ops... ops)
             // value can hold value that may trigger clear/set/toggle.
             // to avoid unintended side effect, preserve the identity for
             // special fields so no side effect is triggered
-            value_type tmp_read = bus::template read<value_type>(reg::address::value);
+            auto tmp_read =
+                bus::template read<value_type>(reg::address::value);
             // set only rmw-able bits (value guaranteed to be zero for rmw bits)
             value |= (tmp_read & rmw_mask);
         } else if constexpr (has_invocable_writes) {
             // invocable writes will get raw fields.
-            // once the mask of invocable writes includes all fields used 
+            // once the mask of invocable writes includes all fields used
             // in the invocable, will need to set unused bits to identity.
             value = bus::template read<value_type>(reg::address::value);
         }
@@ -244,10 +248,9 @@ auto eval(Op op, Ops... ops)
 
 template <typename Op, typename... Ops>
     requires detail::register_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_register_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    decltype(filter::tuple_filter<detail::is_register_read>(
+        std::make_tuple(op, ops...)))> {
     // 1. evaluate reads if any (may make sense to sort)
     // 2. evaluate invocable writes (doesn't make sense to sort. the point of
     // sorting
@@ -313,7 +316,8 @@ auto eval(Op op, Ops... ops)
             write::type::bus::write(write::value, write::type::address::value);
         } else {
             []<typename... Ws>(std::tuple<Ws...>) -> void {
-                (Ws::type::bus::write(Ws::value, Ws::type::address::value), ...);
+                (Ws::type::bus::write(Ws::value, Ws::type::address::value),
+                 ...);
             }(writes_ct);
         }
     }
@@ -322,7 +326,8 @@ auto eval(Op op, Ops... ops)
         if constexpr (std::tuple_size_v<decltype(writes_rt)> == 1) {
             // if there's only one write, just call write without bundling
             using write = std::tuple_element_t<0, decltype(writes_rt)>;
-            write::type::bus::write(std::get<write>(writes_rt).value, write::type::address::value);
+            write::type::bus::write(std::get<write>(writes_rt).value,
+                                    write::type::address::value);
         } else {
             []<typename... Ws>(std::tuple<Ws...> ws) -> void {
                 (Ws::type::bus::write(std::get<Ws>(ws).value,

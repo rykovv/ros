@@ -13,6 +13,7 @@ namespace detail {
 template <typename Register> struct unsafe_register_operations_handler {
     using value_type = typename Register::value_type;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto const &rhs) const
         -> register_assignment_rt<Register> {
         // safe static_case because assignment overload checked type and width
@@ -20,6 +21,7 @@ template <typename Register> struct unsafe_register_operations_handler {
         return register_assignment_rt<Register>{static_cast<value_type>(rhs)};
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto &&rhs) const
         -> register_assignment_rt<Register> {
         // safe static_case because assignment overload checked type and width
@@ -38,7 +40,7 @@ constexpr auto get_rmw_mask_helper(std::tuple<T, Ts...> const &t,
 };
 
 template <typename reg>
-constexpr typename reg::value_type get_rmw_mask(reg const &r) {
+constexpr auto get_rmw_mask(reg const &r) -> typename reg::value_type {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_rmw_mask_helper(tup, std::make_index_sequence<tup_size>{});
@@ -46,13 +48,13 @@ constexpr typename reg::value_type get_rmw_mask(reg const &r) {
 
 template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_writable_mask_helper(std::tuple<T, Ts...> const &t,
-                                   std::index_sequence<Idx...>) ->
+                                        std::index_sequence<Idx...>) ->
     typename T::value_type_r {
-    return ((std::get<Idx>(t).writable() ? std::get<Idx>(t).mask : 0) | ...);
+    return ((std::get<Idx>(t).writable() ? std::get<Idx>(t).mask : 0u) | ...);
 };
 
 template <typename reg>
-constexpr typename reg::value_type get_writable_mask(reg const &r) {
+constexpr auto get_writable_mask(reg const &r) -> typename reg::value_type {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_writable_mask_helper(tup, std::make_index_sequence<tup_size>{});
@@ -60,27 +62,27 @@ constexpr typename reg::value_type get_writable_mask(reg const &r) {
 
 // register operations safety
 template <typename Tup, std::size_t... Idx>
-constexpr bool has_wo_helper(access_type at, Tup const &t,
-                                      std::index_sequence<Idx...>) {
+constexpr auto has_wo_helper(access_type at, Tup const &t,
+                             std::index_sequence<Idx...>) -> bool {
     return (std::tuple_element_t<Idx, Tup>::writeonly() or ...);
 };
 
-template <typename reg> constexpr bool has_wo_access(reg const &r) {
+template <typename reg> constexpr auto has_wo_access(reg const &r) -> bool {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return has_wo_helper(access_type::W, tup,
-                                  std::make_index_sequence<tup_size>{});
+                         std::make_index_sequence<tup_size>{});
 }
 
 template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_identity_mask_helper(std::tuple<T, Ts...> const &t,
-                                   std::index_sequence<Idx...>) ->
+                                        std::index_sequence<Idx...>) ->
     typename T::value_type_r {
     return (std::tuple_element_t<Idx, std::tuple<T, Ts...>>::identity() | ...);
 };
 
 template <typename reg>
-constexpr typename reg::value_type get_identity_mask(reg const &r) {
+constexpr auto get_identity_mask(reg const &r) -> typename reg::value_type {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_identity_mask_helper(tup, std::make_index_sequence<tup_size>{});
@@ -88,11 +90,13 @@ constexpr typename reg::value_type get_identity_mask(reg const &r) {
 
 template <typename Tup, std::size_t... Idx>
 constexpr auto get_ro_mask_helper(Tup const &t, std::index_sequence<Idx...>) {
-    return ((std::tuple_element_t<Idx, Tup>::readonly() ? std::get<Idx>(t).mask : 0) | ...);
+    return ((std::tuple_element_t<Idx, Tup>::readonly() ? std::get<Idx>(t).mask
+                                                        : 0) |
+            ...);
 };
 
 template <typename reg, typename T = reg::value_type>
-constexpr T get_ro_mask(reg const &r) {
+constexpr auto get_ro_mask(reg const &r) -> T {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_ro_mask_helper(tup, std::make_index_sequence<tup_size>{});
@@ -113,12 +117,15 @@ struct reg {
        they have predefined value that won't modify HW state */
     constexpr static value_type identity = detail::get_identity_mask(reg_der{});
     constexpr static value_type rmw_mask = detail::get_rmw_mask(reg_der{});
-    constexpr static value_type writable_mask = detail::get_writable_mask(reg_der{});
+    constexpr static value_type writable_mask =
+        detail::get_writable_mask(reg_der{});
     constexpr static value_type ro_mask = detail::get_ro_mask(reg_der{});
-    constexpr static bool physically_readable = not detail::has_wo_access(reg_der{});
+    constexpr static bool physically_readable =
+        not detail::has_wo_access(reg_der{});
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature, readability-const-return-type)
     constexpr auto operator=(detail::register_value<U, val>) const
         -> detail::register_assignment_ct<reg, val> const {
         static_assert(static_cast<value_type>(val & reg::ro_mask) == 0,
@@ -128,6 +135,7 @@ struct reg {
 
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(U const &rhs) const
         -> detail::register_assignment_rt<reg> {
         static_assert(std::numeric_limits<value_type>::digits >=
@@ -146,6 +154,7 @@ struct reg {
 
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(U &&rhs) const
         -> detail::register_assignment_rt<reg> {
         static_assert(std::numeric_limits<value_type>::digits >=
@@ -189,7 +198,8 @@ namespace detail {
 // template <typename reg_derived, detail::register_type T, detail::addr addr,
 //           typename bus_t>
 // struct is_reg_op<reg<reg_derived, T, addr, bus_t>> : std::true_type {};
-// struct is_reg<reg<reg_derived, T, addr, bus_t>> : std::is_base_of<reg<reg_derived, T, addr, bus_t>, reg_derived> {};
+// struct is_reg<reg<reg_derived, T, addr, bus_t>> :
+// std::is_base_of<reg<reg_derived, T, addr, bus_t>, reg_derived> {};
 } // namespace detail
 
 } // namespace ros
