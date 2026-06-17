@@ -110,6 +110,36 @@ constexpr auto get_invocable_write_value(T value, T mask,
     return value;
 }
 
+template <typename T, typename Tuple, std::size_t... Idx>
+constexpr auto get_invocable_write_mask_fields_helper(Tuple const &tup,
+                                             std::index_sequence<Idx...>) -> T {
+    return (std::tuple_element_t<Idx, Tuple>::mask | ...);
+}
+
+template <typename T, typename Tuple, std::size_t... Idx>
+constexpr auto get_invocable_write_mask_helper(Tuple const &tup,
+                                             std::index_sequence<Idx...>) -> T {
+    return (get_invocable_write_mask_fields_helper<T>(
+                typename std::tuple_element_t<Idx, Tuple>::fields{}, 
+                std::make_index_sequence<
+                    std::tuple_size_v<
+                        typename std::tuple_element_t<Idx, Tuple>::fields>>{}) | ...);
+}
+
+template <typename T, typename... InvocableWrites>
+constexpr auto get_invocable_write_mask(std::tuple<InvocableWrites...> const &tup) 
+    -> T {
+    return get_invocable_write_mask_helper<T>(tup,
+                                      std::make_index_sequence<
+                                      sizeof...(InvocableWrites)>{});
+}
+
+template <typename T>
+constexpr auto get_invocable_write_mask(std::tuple<> const &tup) 
+    -> T {
+    return 0;
+}
+
 template <typename InvocableWrite, std::size_t... Is>
 constexpr void
 evaluate_invocable_assignment_helper(InvocableWrite iw,
@@ -207,10 +237,12 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
             // set only rmw-able bits (value guaranteed to be zero for rmw bits)
             value |= (tmp_read & rmw_mask);
         } else if constexpr (has_invocable_writes) {
-            // invocable writes will get raw fields.
-            // once the mask of invocable writes includes all fields used
-            // in the invocable, will need to set unused bits to identity.
-            value = bus::template read<value_type>(reg::address::value);
+            // same logic as above, plus invocable writes 
+            // will get read fields as function inputs
+            constexpr auto full_invocable_mask = 
+                detail::get_invocable_write_mask<value_type>(writes_inv);
+            auto tmp_read = bus::template read<value_type>(reg::address::value);
+            value |= (tmp_read & ~full_invocable_mask);
         }
 
         // evaluate invocables at the beginning
