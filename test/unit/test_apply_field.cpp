@@ -183,6 +183,21 @@ TEST_F(ApplyFieldTest, InvocableWrite_SpecialFieldsPreserveIdentity) {
     EXPECT_EQ(bus_log[1].value, 0x04u);
 }
 
+TEST_F(ApplyFieldTest, InvocableWrite_UnwrittenSpecialFieldGetsIdentity) {
+    constexpr rw_w1c_reg r{};
+    bus_read_value = 0xF3; // data = 3, status(RW_1C) = F
+
+    // only write data via invocable, status is NOT written
+    eval(r.data([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // data = 4, status should get identity (0 for RW_1C), NOT read value (0xF)
+    // writing 0xF to RW_1C would accidentally clear those bits in hardware
+    EXPECT_EQ(bus_log[1].value, 0x04u);
+}
+
 // --- Single bit operations ---
 
 TEST_F(ApplyFieldTest, SingleBit_Set) {
