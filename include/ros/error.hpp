@@ -13,7 +13,9 @@ constexpr field_error_handler<Field> ignore_handler = [](T v) -> T {
 template <typename Field, typename T = typename Field::value_type>
 constexpr field_error_handler<Field> clamp_handler = [](T v) -> T {
     using value_type_r = typename Field::value_type_r;
-    return T{((1u << Field::length) - 1)};
+    return T{Field::length >= sizeof(value_type_r) * 8
+              ? ~value_type_r{0}
+              : ((value_type_r{1} << Field::length) - 1)};
 };
 
 template <typename Field>
