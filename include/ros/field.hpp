@@ -192,7 +192,8 @@ struct field {
                 std::numeric_limits<std::underlying_type_t<EnumT>>::digits,
             "Underling enum type is wider than the base field type");
 
-        return detail::field_assignment_rt<field>{runtime_check(val)};
+        return detail::field_assignment_rt<field>{
+            runtime_check(static_cast<std::underlying_type_t<EnumT>>(val))};
     }
 
     constexpr auto operator()(std::invocable<value_type> auto f) const
@@ -228,14 +229,13 @@ struct field {
         return (value & mask) >> lsb.value;
     }
 
-    constexpr static auto runtime_check(value_type value) -> value_type {
-        static_assert(writable(), "Cannot write non-writable field");
-
+    constexpr static auto runtime_check(auto value) -> value_type {
         value_type safe_val;
         if (static_cast<value_type_r>(value) <= mask >> lsb.value) {
-            safe_val = value;
+            safe_val = static_cast<value_type>(value);
         } else {
-            safe_val = error::handle_field_error<field>(value);
+            safe_val = error::handle_field_error<field>(
+                static_cast<value_type>(value));
         }
 
         return safe_val;
