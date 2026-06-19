@@ -218,7 +218,7 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         // value can hold value that may trigger clear/set/toggle.
         // to avoid unintended side effect, preserve the identity for
         // special fields so no side effect is triggered
-        auto total_write_mask = rmw_mask | write_mask;
+        constexpr auto total_write_mask = rmw_mask | write_mask;
         value = (reg::identity & ~total_write_mask) 
               | (value & total_write_mask)
               ;
