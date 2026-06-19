@@ -131,6 +131,58 @@ TEST_F(ApplyFieldTest, InvocableWrite_SingleField) {
     EXPECT_EQ(bus_log[1].value, 0x04u);
 }
 
+TEST_F(ApplyFieldTest, InvocableWrite_PartialWrite_PreservesOtherFields) {
+    constexpr simple_reg r{};
+    bus_read_value = 0xA3; // low_nibble = 3, high_nibble = A
+
+    eval(r.low_nibble([](uint8_t current) -> uint8_t {
+        return current + 1;
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // partial write: read 0xA3, invocable returns 3+1=4, high_nibble preserved
+    EXPECT_EQ(bus_log[1].value, 0xA4u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_PlusCTWrite_CoversAllRMW) {
+    constexpr simple_reg r{};
+    bus_read_value = 0xA3; // low_nibble = 3, high_nibble = A
+
+    eval(r.low_nibble([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }), r.high_nibble = 0xB_f);
+
+    ASSERT_EQ(bus_log.size(), 2u); // read + write
+    // invocable should read low_nibble as 3, return 4
+    // CT write sets high_nibble to B
+    EXPECT_EQ(bus_log[1].value, 0xB4u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_FullWidthField) {
+    constexpr full_reg r{};
+    bus_read_value = 0xDEADBEEF;
+
+    eval(r.value([](uint32_t current) -> uint32_t {
+        return current ^ 0xFF; // toggle low byte
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    EXPECT_EQ(bus_log[1].value, 0xDEADBE10u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_SpecialFieldsPreserveIdentity) {
+    constexpr rw_w1c_reg r{};
+    bus_read_value = 0xF3; // data = 3, status(RW_1C) = F
+
+    eval(r.data([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }), r.status = 0_f);
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // data should be 4 (from invocable), status identity for RW_1C is 0
+    EXPECT_EQ(bus_log[1].value, 0x04u);
+}
+
 // --- Single bit operations ---
 
 TEST_F(ApplyFieldTest, SingleBit_Set) {
