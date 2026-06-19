@@ -110,36 +110,6 @@ constexpr auto get_invocable_write_value(T value, T mask,
     return value;
 }
 
-template <typename T, typename Tuple, std::size_t... Idx>
-constexpr auto get_invocable_write_mask_fields_helper(Tuple const &tup,
-                                             std::index_sequence<Idx...>) -> T {
-    return (std::tuple_element_t<Idx, Tuple>::mask | ...);
-}
-
-template <typename T, typename Tuple, std::size_t... Idx>
-constexpr auto get_invocable_write_mask_helper(Tuple const &tup,
-                                             std::index_sequence<Idx...>) -> T {
-    return (get_invocable_write_mask_fields_helper<T>(
-                typename std::tuple_element_t<Idx, Tuple>::fields{}, 
-                std::make_index_sequence<
-                    std::tuple_size_v<
-                        typename std::tuple_element_t<Idx, Tuple>::fields>>{}) | ...);
-}
-
-template <typename T, typename... InvocableWrites>
-constexpr auto get_invocable_write_mask(std::tuple<InvocableWrites...> const &tup) 
-    -> T {
-    return get_invocable_write_mask_helper<T>(tup,
-                                      std::make_index_sequence<
-                                      sizeof...(InvocableWrites)>{});
-}
-
-template <typename T>
-constexpr auto get_invocable_write_mask(std::tuple<> const &tup) 
-    -> T {
-    return 0;
-}
-
 template <typename InvocableWrite, std::size_t... Is>
 constexpr void
 evaluate_invocable_assignment_helper(InvocableWrite iw,
@@ -227,22 +197,8 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         constexpr bool has_invocable_writes =
             std::tuple_size_v<decltype(writes_inv)> > 0;
 
-        if constexpr (is_partial_write) {
-            // registers are not guaranteed to be idempotent, (the stored
-            // value can hold value that may trigger clear/set/toggle.
-            // to avoid unintended side effect, preserve the identity for
-            // special fields so no side effect is triggered
-            auto tmp_read =
-                bus::template read<value_type>(reg::address::value);
-            // set only rmw-able bits (value guaranteed to be zero for rmw bits)
-            value |= (tmp_read & rmw_mask);
-        } else if constexpr (has_invocable_writes) {
-            // same logic as above, plus invocable writes 
-            // will get read fields as function inputs
-            constexpr auto full_invocable_mask = 
-                detail::get_invocable_write_mask<value_type>(writes_inv);
-            auto tmp_read = bus::template read<value_type>(reg::address::value);
-            value |= (tmp_read & ~full_invocable_mask);
+        if constexpr (is_partial_write or has_invocable_writes) {
+            value = bus::template read<value_type>(reg::address::value);
         }
 
         // evaluate invocables at the beginning
@@ -257,6 +213,15 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         value = detail::get_write_value(value, write_mask_ct, writes_ct);
         // runtime
         value = detail::get_write_value(value, write_mask_rt, writes_rt);
+
+        // registers are not guaranteed to be idempotent, (the stored
+        // value can hold value that may trigger clear/set/toggle.
+        // to avoid unintended side effect, preserve the identity for
+        // special fields so no side effect is triggered
+        auto total_write_mask = rmw_mask | write_mask;
+        value = (reg::identity & ~total_write_mask) 
+              | (value & total_write_mask)
+              ;
 
         bus::write(value, reg::address::value);
     } else /* if (return_reads) */ {
