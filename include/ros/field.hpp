@@ -48,14 +48,14 @@ template <typename Field> struct unsafe_field_operations_handler {
 template <typename reg_derived, detail::msb msb, detail::lsb lsb,
           access_type at,
           detail::field_type value_type_f = typename reg_derived::value_type>
-    requires detail::field_selectable<value_type_f, msb, lsb>
+    requires detail::field_selectable<detail::unwrap_enum_t<value_type_f>, msb, lsb>
 struct field {
     using value_type_r = typename reg_derived::value_type;
     using value_type = value_type_f;
     using reg = reg_derived;
     using type = field<reg_derived, msb, lsb, at, value_type_f>;
 
-    static_assert(std::numeric_limits<value_type>::digits 
+    static_assert(std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits 
                   <= std::numeric_limits<value_type_r>::digits,
                   "Field type cannot be wider than the base register type");
 
