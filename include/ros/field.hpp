@@ -55,6 +55,10 @@ struct field {
     using reg = reg_derived;
     using type = field<reg_derived, msb, lsb, at, value_type_f>;
 
+    static_assert(std::numeric_limits<value_type>::digits 
+                  <= std::numeric_limits<value_type_r>::digits,
+                  "Field type cannot be wider than the base register type");
+
     constexpr static access_type access = at;
 
     constexpr static uint8_t length = []() {
