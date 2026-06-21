@@ -239,11 +239,11 @@ struct field {
         }
     }
 
-    constexpr static auto msb() -> decltype(Msb.value) const{ 
+    constexpr static auto msb() -> decltype(Msb.value) { 
         return Msb.value; 
     }
 
-    constexpr static auto lsb() -> decltype(Lsb.value) const{ 
+    constexpr static auto lsb() -> decltype(Lsb.value) { 
         return Lsb.value; 
     }
 
