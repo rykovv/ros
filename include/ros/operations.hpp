@@ -40,6 +40,29 @@ struct field_assignment_invocable : field_assignment<FieldOp> {
     F lambda_;
 };
 
+template <typename Field> struct unsafe_field_operations_handler {
+    using value_type = typename Field::value_type;
+
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
+    constexpr auto operator=(auto const &rhs) const
+        -> field_assignment_rt<Field> {
+        static_assert(Field::access != access_type::RO,
+                      "cannot write read-only field");
+
+        return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
+    constexpr auto operator=(auto &&rhs) const -> field_assignment_rt<Field> {
+        static_assert(Field::access != access_type::RO,
+                      "cannot write read-only field");
+
+        return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
+    }
+
+    // TODO: add compile time unsafe operations
+};
+
 } // namespace detail
 
 // reg operations
