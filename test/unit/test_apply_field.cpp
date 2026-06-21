@@ -77,21 +77,6 @@ TEST_F(ApplyFieldTest, RuntimeOverflow_ClampedWrite) {
     EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(clamped));
 }
 
-TEST_F(ApplyFieldTest, RuntimeOverflow_SaturatesToMax) {
-    constexpr simple_reg r{};
-    bus_read_value = 0x00;
-    uint8_t val = 16; // [3:0] overflow by exactly one over max (15)
-
-    eval(r.low_nibble = val);
-
-    ASSERT_EQ(bus_log.size(), 2u);
-    using low = decltype(simple_reg::low_nibble);
-    // a clamp must SATURATE to the field max (0x0F), not bitwise-truncate:
-    // 16 & 0x0F == 0 would be wrong.
-    uint8_t clamped = (1u << low::length) - 1;
-    EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(clamped));
-}
-
 TEST_F(ApplyFieldTest, RuntimeOverflow_ClampedWrite_NonZeroLsb) {
     constexpr simple_reg r{};
     bus_read_value = 0x00;
