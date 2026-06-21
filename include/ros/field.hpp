@@ -31,6 +31,9 @@ struct field {
         return Msb.value == Lsb.value ? 1 : Msb.value - Lsb.value + 1;
     }();
 
+    static_assert(std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits
+                  >= length, "Field type cannot be wider than the field length");
+
     constexpr static value_type_r mask = []() -> value_type_r {
         if (Msb.value != Lsb.value) {
             if constexpr (Msb.value ==
