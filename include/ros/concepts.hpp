@@ -7,7 +7,8 @@ namespace ros {
 namespace detail {
 
 template <typename T, detail::msb msb, detail::lsb lsb>
-concept field_selectable = (msb.value <= std::numeric_limits<T>::digits - 1 &&
+concept field_selectable = std::unsigned_integral<T> &&
+                           (msb.value <= std::numeric_limits<T>::digits - 1 &&
                             lsb.value <= std::numeric_limits<T>::digits - 1) &&
                            (msb.value >= lsb.value);
 
