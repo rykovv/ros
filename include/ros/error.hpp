@@ -1,6 +1,16 @@
 #pragma once
 
+#include <concepts>
+#include <type_traits>
+#include <limits>
+#include <ros/utils.hpp>
+
+
 namespace ros {
+namespace detail {
+template <typename T>
+concept enumeration = std::is_enum_v<T>;
+} // namespace detail
 namespace error {
 
 template <typename Field, typename T = typename Field::value_type>
@@ -10,14 +20,22 @@ template <typename Field, typename T = typename Field::value_type>
 constexpr field_error_handler<Field> ignore_handler = [](T v) -> T {
     return T{0};
 };
+
 template <typename Field, typename T = typename Field::value_type>
-constexpr field_error_handler<Field> clamp_handler = [](T v) -> T {
-    using value_type_r = typename Field::value_type_r;
-    return T{((1u << Field::length) - 1)};
-};
+    requires std::unsigned_integral<T>
+constexpr auto truncate_handler(T v) -> T {
+    return v & (Field::mask >> Field::lsb());
+}
+
+template <typename Field, typename T = typename Field::value_type>
+    requires detail::enumeration<T>
+constexpr auto truncate_handler(T v) -> T {
+    // caution: can be cast to a non-existent enum value
+    return static_cast<T>(detail::to_underlying(v) & (Field::mask >> Field::lsb()));
+}
 
 template <typename Field>
-constexpr field_error_handler<Field> handle_field_error = clamp_handler<Field>;
+constexpr field_error_handler<Field> handle_field_error = truncate_handler<Field>;
 
 template <typename Register, typename T = typename Register::value_type>
 using register_error_handler = T (*)(T);

@@ -77,6 +77,21 @@ TEST_F(ApplyFieldTest, RuntimeOverflow_ClampedWrite) {
     EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(clamped));
 }
 
+TEST_F(ApplyFieldTest, RuntimeOverflow_ClampedWrite_NonZeroLsb) {
+    constexpr simple_reg r{};
+    bus_read_value = 0x00;
+    uint8_t val = 0x1F; // exceeds high_nibble [7:4] max (0xF), gets clamped
+
+    eval(r.high_nibble = val);
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    using high = decltype(simple_reg::high_nibble);
+    // a fully-saturated field equals its (register-positioned) mask: 0xF << 4.
+    // the clamp must be computed in field space then positioned, so the low
+    // bits of the field value must survive the shift back to [7:4].
+    EXPECT_EQ(bus_log[1].value, static_cast<uint32_t>(high::mask));
+}
+
 // --- Reads ---
 
 TEST_F(ApplyFieldTest, SingleFieldRead) {
@@ -128,6 +143,73 @@ TEST_F(ApplyFieldTest, InvocableWrite_SingleField) {
 
     ASSERT_EQ(bus_log.size(), 2u); // read + write
     // invocable reads current (3), returns 4, written back
+    EXPECT_EQ(bus_log[1].value, 0x04u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_PartialWrite_PreservesOtherFields) {
+    constexpr simple_reg r{};
+    bus_read_value = 0xA3; // low_nibble = 3, high_nibble = A
+
+    eval(r.low_nibble([](uint8_t current) -> uint8_t {
+        return current + 1;
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // partial write: read 0xA3, invocable returns 3+1=4, high_nibble preserved
+    EXPECT_EQ(bus_log[1].value, 0xA4u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_PlusCTWrite_CoversAllRMW) {
+    constexpr simple_reg r{};
+    bus_read_value = 0xA3; // low_nibble = 3, high_nibble = A
+
+    eval(r.low_nibble([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }), r.high_nibble = 0xB_f);
+
+    ASSERT_EQ(bus_log.size(), 2u); // read + write
+    // invocable should read low_nibble as 3, return 4
+    // CT write sets high_nibble to B
+    EXPECT_EQ(bus_log[1].value, 0xB4u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_FullWidthField) {
+    constexpr full_reg r{};
+    bus_read_value = 0xDEADBEEF;
+
+    eval(r.value([](uint32_t current) -> uint32_t {
+        return current ^ 0xFF; // toggle low byte
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    EXPECT_EQ(bus_log[1].value, 0xDEADBE10u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_SpecialFieldsPreserveIdentity) {
+    constexpr rw_w1c_reg r{};
+    bus_read_value = 0xF3; // data = 3, status(RW_1C) = F
+
+    eval(r.data([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }), r.status = 0_f);
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // data should be 4 (from invocable), status identity for RW_1C is 0
+    EXPECT_EQ(bus_log[1].value, 0x04u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_UnwrittenSpecialFieldGetsIdentity) {
+    constexpr rw_w1c_reg r{};
+    bus_read_value = 0xF3; // data = 3, status(RW_1C) = F
+
+    // only write data via invocable, status is NOT written
+    eval(r.data([](uint8_t current) -> uint8_t {
+        return current + 1; // 3 + 1 = 4
+    }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // data = 4, status should get identity (0 for RW_1C), NOT read value (0xF)
+    // writing 0xF to RW_1C would accidentally clear those bits in hardware
     EXPECT_EQ(bus_log[1].value, 0x04u);
 }
 
