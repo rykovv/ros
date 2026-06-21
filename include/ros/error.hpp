@@ -23,19 +23,19 @@ constexpr field_error_handler<Field> ignore_handler = [](T v) -> T {
 
 template <typename Field, typename T = typename Field::value_type>
     requires std::unsigned_integral<T>
-constexpr auto trancate_handler(T v) -> T {
+constexpr auto truncate_handler(T v) -> T {
     return v & (Field::mask >> Field::lsb());
 }
 
 template <typename Field, typename T = typename Field::value_type>
     requires detail::enumeration<T>
-constexpr auto trancate_handler(T v) -> T {
+constexpr auto truncate_handler(T v) -> T {
     // caution: can be cast to a non-existent enum value
     return static_cast<T>(detail::to_underlying(v) & (Field::mask >> Field::lsb()));
 }
 
 template <typename Field>
-constexpr field_error_handler<Field> handle_field_error = trancate_handler<Field>;
+constexpr field_error_handler<Field> handle_field_error = truncate_handler<Field>;
 
 template <typename Register, typename T = typename Register::value_type>
 using register_error_handler = T (*)(T);
