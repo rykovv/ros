@@ -3,6 +3,7 @@
 #include <concepts>
 #include <type_traits>
 #include <limits>
+#include <ros/utils.hpp>
 
 
 namespace ros {
@@ -21,24 +22,18 @@ constexpr field_error_handler<Field> ignore_handler = [](T v) -> T {
 };
 
 template <typename Field, typename T = typename Field::value_type>
-    requires std::integral<T>
-constexpr auto clamp_handler(T v) -> T {
-    return T{Field::length == std::numeric_limits<T>::digits
-              ? ~T{0}
-              : ((T{1} << Field::length) - 1)};
+    requires std::unsigned_integral<T>
+constexpr auto clamp_handler(T v) -> T {    
+    return v & Field::mask;
 }
 
 template <typename Field, typename T = typename Field::value_type>
     requires detail::enumeration<T>
 constexpr auto clamp_handler(T v) -> T {
     using U = std::underlying_type_t<T>;
-
-    U mask = Field::length == std::numeric_limits<U>::digits
-             ? ~U{0}
-             : ((U{1} << Field::length) - 1);
     
     // caution: can be cast to a non-existent enum value
-    return static_cast<T>(mask);
+    return static_cast<T>(detail::to_underlying(v) & Field::mask);
 }
 
 template <typename Field>
