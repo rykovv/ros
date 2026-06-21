@@ -34,7 +34,8 @@ target_sources(
 	include/ros/field.hpp
 	include/ros/literals.hpp
 	include/ros/reflection.hpp
-	include/ros/type_traits.hpp)
+	include/ros/type_traits.hpp
+	include/ros/utils.hpp)
 
 if(PROJECT_IS_TOP_LEVEL)
     add_subdirectory(test)
