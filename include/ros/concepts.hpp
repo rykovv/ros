@@ -6,17 +6,6 @@
 namespace ros {
 namespace detail {
 
-template <typename T, typename enable = void> struct unwrap_enum {
-    using type = T;
-};
-
-template <typename T>
-struct unwrap_enum<T, typename std::enable_if_t<std::is_enum_v<T>>> {
-    using type = std::underlying_type_t<T>;
-};
-
-template <typename T> using unwrap_enum_t = typename unwrap_enum<T>::type;
-
 template <typename T, detail::msb msb, detail::lsb lsb>
 concept field_selectable = (msb.value <= std::numeric_limits<T>::digits - 1 &&
                             lsb.value <= std::numeric_limits<T>::digits - 1) &&

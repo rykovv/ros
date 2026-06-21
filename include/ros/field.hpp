@@ -7,17 +7,9 @@
 #include <ros/error.hpp>
 #include <ros/literals.hpp>
 #include <ros/operations.hpp>
+#include <ros/utils.hpp>
 
 namespace ros {
-
-namespace utils {
-template <typename Enum>
-[[nodiscard]] constexpr auto
-to_underlying(Enum e) noexcept -> std::underlying_type_t<Enum> {
-    return static_cast<std::underlying_type_t<Enum>>(e);
-}
-} // namespace utils
-
 namespace detail {
 
 template <typename Field> struct unsafe_field_operations_handler {
@@ -242,13 +234,13 @@ struct field {
     }
 
     constexpr static auto writable() -> bool {
-        return (utils::to_underlying(access) &
-                utils::to_underlying(access_type::W)) != 0;
+        return (detail::to_underlying(access) &
+                detail::to_underlying(access_type::W)) != 0;
     }
 
     constexpr static auto readable() -> bool {
-        return (utils::to_underlying(access) &
-                utils::to_underlying(access_type::R)) != 0;
+        return (detail::to_underlying(access) &
+                detail::to_underlying(access_type::R)) != 0;
     }
 
     constexpr static auto readwritable() -> bool { return writable() && readable(); }
