@@ -32,7 +32,7 @@ struct field {
     }();
 
     static_assert(std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits
-                  >= length, "Field type cannot be wider than the field length");
+                  >= length, "Field length wider than the field type");
 
     constexpr static value_type_r mask = []() -> value_type_r {
         if (Msb.value != Lsb.value) {
