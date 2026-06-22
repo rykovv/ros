@@ -173,6 +173,36 @@ TEST_F(ApplyFieldTest, InvocableWrite_PlusCTWrite_CoversAllRMW) {
     EXPECT_EQ(bus_log[1].value, 0xB4u);
 }
 
+TEST_F(ApplyFieldTest, InvocableWrite_MultipleInvocables_LaterSeesEarlierWrite) {
+    constexpr simple_reg r{};
+    bus_read_value = 0x21; // low_nibble = 1, high_nibble = 2
+
+    // Invocables are applied as a sequential chain in argument order, NOT against
+    // a single pre-read snapshot. The 2nd invocable (writing low_nibble) reads
+    // high_nibble, which the 1st invocable has already incremented.
+    eval(r.high_nibble([](uint8_t h) -> uint8_t { return h + 1; }), // high: 2 -> 3
+         r.low_nibble([](uint8_t h) -> uint8_t { return h; },       // low = current high
+                      r.high_nibble));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // low reads high AFTER it became 3 -> 0x33 (a snapshot semantics would give 0x32)
+    EXPECT_EQ(bus_log[1].value, 0x33u);
+}
+
+TEST_F(ApplyFieldTest, InvocableWrite_MultipleInvocables_OrderDependent) {
+    constexpr simple_reg r{};
+    bus_read_value = 0x21; // low_nibble = 1, high_nibble = 2
+
+    // Same two invocables, reversed order: low_nibble's invocable now runs first,
+    // so it reads high_nibble's original value (2) before it is incremented.
+    eval(r.low_nibble([](uint8_t h) -> uint8_t { return h; }, r.high_nibble),
+         r.high_nibble([](uint8_t h) -> uint8_t { return h + 1; }));
+
+    ASSERT_EQ(bus_log.size(), 2u);
+    // low reads high BEFORE the increment -> low=2; high then becomes 3 -> 0x32
+    EXPECT_EQ(bus_log[1].value, 0x32u);
+}
+
 TEST_F(ApplyFieldTest, InvocableWrite_FullWidthField) {
     constexpr full_reg r{};
     bus_read_value = 0xDEADBEEF;
