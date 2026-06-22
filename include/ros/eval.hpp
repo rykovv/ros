@@ -201,18 +201,13 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
             value = bus::template read<value_type>(reg::address::value);
         }
 
-        // evaluate invocables at the beginning
-        // it doesn't make much sense to evaluate it at the end because it will
-        // have newly assigned values. this way just literals could be provided
-        // in the lambda
-        value = detail::get_invocable_write_value(value, write_mask_inv,
-                                                  writes_inv);
+        // compose monadic chain
+        const auto chain
+            = detail::chain(writes_inv)
+            | detail::chain(writes_ct)
+            | detail::chain(writes_rt);
 
-        // [TODO] study efficiency of bundling together all writes
-        // compile time
-        value = detail::get_write_value(value, write_mask_ct, writes_ct);
-        // runtime
-        value = detail::get_write_value(value, write_mask_rt, writes_rt);
+        value = chain(value);
 
         // registers are not guaranteed to be idempotent, (the stored
         // value can hold value that may trigger clear/set/toggle.
