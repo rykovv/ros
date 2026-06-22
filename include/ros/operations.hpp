@@ -22,7 +22,7 @@ struct field_assignment_ct : field_assignment<Field> {
         return Field::to_reg(register_value, value);
     }
 
-// private:
+private:
     constexpr static value_type value = val;
 };
 
@@ -37,7 +37,7 @@ template <typename Field> struct field_assignment_rt : field_assignment<Field> {
         return Field::to_reg(register_value, value);
     }
 
-// private:
+private:
     value_type value;
 };
 
@@ -64,7 +64,8 @@ private:
     -> value_type {
         return lambda_(
             std::tuple_element_t<Idx, FieldsTuple>::to_field(value)...);
-        }
+    }
+
     F lambda_;
 };
 
