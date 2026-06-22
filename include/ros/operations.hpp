@@ -201,6 +201,21 @@ template <typename Register> struct unsafe_register_operations_handler {
     // TODO: Add compile time unsafe operations support
 };
 
+template <typename T> struct return_reads {
+    using type = void;
+};
+
+template <typename Op> struct return_reads<std::tuple<Op>> {
+    using type = typename Op::type::value_type;
+};
+
+template <typename... Ops> struct return_reads<std::tuple<Ops...>> {
+    using type = std::tuple<typename Ops::type::value_type...>;
+};
+
+template <typename... Ops>
+using return_reads_t = typename return_reads<Ops...>::type;
+
 template <typename T, typename... Ts, std::size_t... Idx>
 constexpr auto get_rmw_mask_helper(std::tuple<T, Ts...> const &t,
                                    std::index_sequence<Idx...>) ->
@@ -269,6 +284,22 @@ constexpr auto get_ro_mask(reg const &r) -> T {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_ro_mask_helper(tup, std::make_index_sequence<tup_size>{});
+}
+
+template <typename Tuple, std::size_t... Idx>
+constexpr auto get_write_mask_helper(Tuple const &tup,
+                                     std::index_sequence<Idx...>) {
+    return (std::tuple_element_t<Idx, Tuple>::type::mask | ...);
+};
+
+template <typename T> constexpr auto get_write_mask(std::tuple<> const &tup) -> T {
+    return 0;
+}
+
+template <typename T, typename... Ts>
+constexpr auto get_write_mask(std::tuple<Ts...> const &tup) -> T {
+    return get_write_mask_helper(tup,
+                                 std::make_index_sequence<sizeof...(Ts)>{});
 }
 
 template <typename... Ops, std::size_t... Idx>

@@ -6,83 +6,6 @@
 #include <ros/type_traits.hpp>
 
 namespace ros {
-namespace detail {
-
-template <typename T> struct return_reads {
-    using type = void;
-};
-
-template <typename Op> struct return_reads<std::tuple<Op>> {
-    using type = typename Op::type::value_type;
-};
-
-template <typename... Ops> struct return_reads<std::tuple<Ops...>> {
-    using type = std::tuple<typename Ops::type::value_type...>;
-};
-
-template <typename... Ops>
-using return_reads_t = typename return_reads<Ops...>::type;
-
-
-template <typename Tuple, std::size_t... Idx>
-constexpr auto get_write_mask_helper(Tuple const &tup,
-                                     std::index_sequence<Idx...>) {
-    return (std::tuple_element_t<Idx, Tuple>::type::mask | ...);
-};
-
-template <typename T> constexpr auto get_write_mask(std::tuple<> const &tup) -> T {
-    return 0;
-}
-
-template <typename T, typename... Ts>
-constexpr auto get_write_mask(std::tuple<Ts...> const &tup) -> T {
-    return get_write_mask_helper(tup,
-                                 std::make_index_sequence<sizeof...(Ts)>{});
-}
-
-template <typename InvocableWrite, std::size_t... Is>
-constexpr void
-evaluate_invocable_assignment_helper(InvocableWrite iw,
-                                     std::index_sequence<Is...>) {
-    using registerOp = typename InvocableWrite::registerOp;
-    using busOp = registerOp::bus;
-    using registers = typename InvocableWrite::registers;
-
-    busOp::write(
-        iw(
-            // call bus::read that corresponds to each register
-            std::tuple_element_t<Is, registers>::bus::template read<
-                typename std::tuple_element_t<Is, registers>::value_type>(
-                std::tuple_element_t<Is, registers>::address::value)...),
-        registerOp::address::value);
-}
-
-template <typename InvocableWrite>
-constexpr void evaluate_invocable_assignment(InvocableWrite iw) {
-    using registers = typename InvocableWrite::registers;
-    evaluate_invocable_assignment_helper(
-        iw, std::make_index_sequence<std::tuple_size_v<registers>>{});
-}
-
-template <typename... InvocableWrites, std::size_t... Is>
-constexpr void
-evaluate_invocable_assignments_helper(std::tuple<InvocableWrites...> writes,
-                                      std::index_sequence<Is...>) {
-    (evaluate_invocable_assignment(std::get<Is>(writes)), ...);
-}
-
-template <typename... InvocableWrites>
-constexpr void
-evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
-    evaluate_invocable_assignments_helper(
-        writes, std::make_index_sequence<sizeof...(InvocableWrites)>{});
-}
-
-constexpr void evaluate_invocable_assignments(std::tuple<> writes) {
-    // no-op
-}
-
-} // namespace detail
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
@@ -139,7 +62,8 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         const auto chain
             = detail::chain(writes_inv)
             | detail::chain(writes_ct)
-            | detail::chain(writes_rt);
+            | detail::chain(writes_rt)
+            ;
 
         value = chain(value);
 
