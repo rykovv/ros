@@ -78,6 +78,10 @@ evaluate_invocable_assignments(std::tuple<InvocableWrites...> writes) {
         writes, std::make_index_sequence<sizeof...(InvocableWrites)>{});
 }
 
+constexpr void evaluate_invocable_assignments(std::tuple<> writes) {
+    // no-op
+}
+
 } // namespace detail
 
 template <typename Op, typename... Ops>
@@ -220,44 +224,9 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
                 Rs::type::address::value)...);
     }(reads);
 
-    if constexpr (has_writes_inv) {
-        detail::evaluate_invocable_assignments(writes_inv);
-    }
-
-    // third, cluster adjacent writes into separate tuples
-    //   call write bundled for each tuple
-
-    // writes are peformed separately. the intent is to get jem
-    //   out of compile-time accessible writes, and then let
-    //   the compiler to optimize the runtime writes
-
-    if constexpr (has_writes_ct) {
-        if constexpr (std::tuple_size_v<decltype(writes_ct)> == 1) {
-            // if there's only one write, just call write without bundling
-            using write = std::tuple_element_t<0, decltype(writes_ct)>;
-            write::type::bus::write(write::value, write::type::address::value);
-        } else {
-            []<typename... Ws>(std::tuple<Ws...>) -> void {
-                (Ws::type::bus::write(Ws::value, Ws::type::address::value),
-                 ...);
-            }(writes_ct);
-        }
-    }
-
-    if constexpr (has_writes_rt) {
-        if constexpr (std::tuple_size_v<decltype(writes_rt)> == 1) {
-            // if there's only one write, just call write without bundling
-            using write = std::tuple_element_t<0, decltype(writes_rt)>;
-            write::type::bus::write(std::get<write>(writes_rt).value,
-                                    write::type::address::value);
-        } else {
-            []<typename... Ws>(std::tuple<Ws...> ws) -> void {
-                (Ws::type::bus::write(std::get<Ws>(ws).value,
-                                      Ws::type::address::value),
-                 ...);
-            }(writes_rt);
-        }
-    }
+    detail::evaluate(writes_inv);
+    detail::evaluate(writes_ct);
+    detail::evaluate(writes_rt);
 
     // if there's only one read, just return the reg value without tuple
     if constexpr (std::tuple_size_v<decltype(reads)> == 1) {

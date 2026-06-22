@@ -124,30 +124,56 @@ template <typename Register> struct register_assignment {
 
 template <typename Register, typename Register::value_type val>
 struct register_assignment_ct : register_assignment<Register> {
-    constexpr static typename Register::value_type value = val;
+    using value_type = typename Register::value_type;
+    using bus = typename Register::bus;
+    
+    constexpr auto operator() () const -> void {
+        return bus::template write<value_type>(val,
+            Register::address::value);
+    };
 };
 
 template <typename Register>
 struct register_assignment_rt : register_assignment<Register> {
     using value_type = typename Register::value_type;
+    using bus = typename Register::bus;
 
-    constexpr explicit register_assignment_rt(value_type v) : value{v} {}
+    constexpr explicit register_assignment_rt(const value_type v) : value_{v} {}
 
-    value_type value;
+    constexpr auto operator() () const -> void {
+        return bus::template write<value_type>(value_,
+            Register::address::value);
+    };
+
+private:
+    value_type value_;
 };
 
 template <typename F, typename RegisterOp, typename Register0,
           typename... Registers>
 struct register_assignment_invocable : register_assignment<RegisterOp> {
+    using value_type = typename RegisterOp::value_type;
+    using bus = typename RegisterOp::bus;
     using registerOp = RegisterOp;
     using registers = std::tuple<Register0, Registers...>;
 
     explicit register_assignment_invocable(F f) : lambda_{f} {}
 
-    constexpr auto operator()(typename Register0::value_type r0,
-                              typename Registers::value_type... rs) ->
-        typename RegisterOp::value_type {
-        return lambda_(r0, rs...);
+    constexpr auto operator() () const -> void {
+        bus::template write<value_type>(
+            invoke(registers{}, 
+                std::make_index_sequence<sizeof...(Registers) + 1>{}),
+            RegisterOp::address::value);
+    }
+
+private:
+    template <typename RegistersTuple, std::size_t... Idx>
+    [[nodiscard]] constexpr auto invoke(const RegistersTuple tup,
+                                        std::index_sequence<Idx...>) const
+        -> value_type {
+        return lambda_(
+            bus::template read<typename std::tuple_element_t<Idx, RegistersTuple>::value_type>(
+                std::tuple_element_t<Idx, RegistersTuple>::address::value)...);
     }
 
     F lambda_;
@@ -258,6 +284,21 @@ constexpr auto chain(std::tuple<Ops...> const &ops) {
 
 constexpr auto chain(std::tuple<> const &tup) {
     return [] (auto value) { return value; };
+}
+
+template <typename... Ops, std::size_t... Idx>
+constexpr auto evaluate_helper(std::tuple<Ops...> const &ops,
+                            std::index_sequence<Idx...>) {
+    return (std::get<Idx>(ops)(), ...);
+}
+
+template <typename... Ops>
+constexpr auto evaluate(std::tuple<Ops...> const &ops) {
+    return evaluate_helper(ops, std::make_index_sequence<sizeof...(Ops)>{});
+}
+
+constexpr auto evaluate(std::tuple<> const &tup) {
+    // no-op
 }
 } // namespace detail
 } // namespace ros
