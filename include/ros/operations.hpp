@@ -52,9 +52,11 @@ struct field_assignment_invocable : field_assignment<FieldOp> {
     
     constexpr auto operator() (const value_type_r register_value) const
     -> value_type_r {
-        return FieldOp::to_reg(register_value, 
-            invoke(register_value, fields{}, 
-                std::make_index_sequence<1 + sizeof...(Fields)>{}));
+        return FieldOp::to_reg(
+            register_value,
+            FieldOp::runtime_check(
+                invoke(register_value, fields{}, 
+                    std::make_index_sequence<1 + sizeof...(Fields)>{})));
     }
             
 private:
