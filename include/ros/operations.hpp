@@ -245,23 +245,6 @@ constexpr auto get_ro_mask(reg const &r) -> T {
     return get_ro_mask_helper(tup, std::make_index_sequence<tup_size>{});
 }
 
-template <typename T, typename Tuple, std::size_t... Idx>
-constexpr auto evaluate_chain_helper(const T value, const Tuple ops,
-                                    std::index_sequence<Idx...>) -> T {
-    return (std::get<Idx>(ops) | ...)(value);
-}
-
-template <typename T, typename... Ops>
-constexpr auto evaluate_chain(const T value, const std::tuple<Ops...> ops) -> T {
-    return evaluate_chain_helper(value, ops,
-        std::make_index_sequence<sizeof...(Ops)>{});
-}
-
-template <typename T>
-constexpr auto evaluate_chain(const T value, const std::tuple<> tup) -> T {
-    return value;
-}
-
 template <typename... Ops, std::size_t... Idx>
 constexpr auto chain_helper(std::tuple<Ops...> const &ops,
                             std::index_sequence<Idx...>) {

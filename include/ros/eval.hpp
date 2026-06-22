@@ -23,24 +23,6 @@ template <typename... Ops> struct return_reads<std::tuple<Ops...>> {
 template <typename... Ops>
 using return_reads_t = typename return_reads<Ops...>::type;
 
-template <typename T, typename Tuple, std::size_t... Idx>
-constexpr auto get_write_value_helper(Tuple tup, std::index_sequence<Idx...>) -> T {
-    return (std::tuple_element_t<Idx, Tuple>::type::to_reg(
-                T{0}, std::get<Idx>(tup).value) |
-            ...);
-}
-
-template <typename T, typename... Ts>
-constexpr auto get_write_value(T value, T mask, std::tuple<Ts...> const &tup) -> T {
-    return (value & ~mask) |
-           get_write_value_helper<T>(tup,
-                                     std::make_index_sequence<sizeof...(Ts)>{});
-}
-
-template <typename T>
-constexpr auto get_write_value(T value, T mask, std::tuple<> const &tup) -> T {
-    return value;
-}
 
 template <typename Tuple, std::size_t... Idx>
 constexpr auto get_write_mask_helper(Tuple const &tup,
@@ -56,58 +38,6 @@ template <typename T, typename... Ts>
 constexpr auto get_write_mask(std::tuple<Ts...> const &tup) -> T {
     return get_write_mask_helper(tup,
                                  std::make_index_sequence<sizeof...(Ts)>{});
-}
-
-template <typename T, typename InvocableWrite, typename TupleFields,
-          std::size_t... Idx>
-constexpr auto get_invocable_write_fields_helper(T value, InvocableWrite iw,
-                                              TupleFields tup,
-                                              std::index_sequence<Idx...>)
-    -> T {
-    // get each field
-    return iw(std::tuple_element_t<Idx, TupleFields>::to_field(value)...);
-}
-
-template <typename T, typename TupleInvocableWrites, std::size_t... Idx>
-constexpr auto get_invocable_write_value_helper(T value, TupleInvocableWrites tup,
-                                             std::index_sequence<Idx...>) 
-    -> T {
-    return (
-        std::tuple_element_t<
-            Idx, TupleInvocableWrites>::type::to_reg( // wrap back everything to
-                                                      // reg value
-            T{0}, // pass in zero, final value will assigned with a compound
-                  // mask
-            std::tuple_element_t<
-                Idx, TupleInvocableWrites>::type::runtime_check( // safety check
-                get_invocable_write_fields_helper( // make invocable call with
-                                                   // each field value
-                    value,                         // original reg value
-                    std::get<Idx>(tup),            // invocable lambda wrapper
-                    typename std::tuple_element_t<
-                        Idx, TupleInvocableWrites>::fields{}, // tuple of fields
-                    std::make_index_sequence<
-                        std::tuple_size_v<typename std::tuple_element_t<
-                            Idx, TupleInvocableWrites>::fields>>{}))) |
-        ...);
-}
-
-template <typename T, typename... InvocableWrites>
-constexpr auto
-get_invocable_write_value(T value, T mask,
-                          std::tuple<InvocableWrites...> const &tup) 
-    -> T {
-    return (value & ~mask) |
-           get_invocable_write_value_helper(
-               value, tup,
-               std::make_index_sequence<sizeof...(InvocableWrites)>{});
-}
-
-template <typename T>
-constexpr auto get_invocable_write_value(T value, T mask,
-                                      std::tuple<> const &tup) 
-    -> T {
-    return value;
 }
 
 template <typename InvocableWrite, std::size_t... Is>
