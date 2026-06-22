@@ -38,7 +38,7 @@ template <typename Field> struct field_assignment_rt : field_assignment<Field> {
     }
 
 // private:
-    const value_type value;
+    value_type value;
 };
 
 template <typename F, typename FieldOp, typename Field0, typename... Fields>
@@ -58,7 +58,7 @@ struct field_assignment_invocable : field_assignment<FieldOp> {
             
 private:
     template <typename FieldsTuple, std::size_t... Idx>
-    constexpr auto invoke(const value_type_r value,
+    [[nodiscard]] constexpr auto invoke(const value_type_r value,
         const FieldsTuple tup,
         const std::index_sequence<Idx...>) const
     -> value_type {
