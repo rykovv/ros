@@ -14,29 +14,57 @@ template <typename Field> struct field_assignment {
 
 template <typename Field, typename Field::value_type val>
 struct field_assignment_ct : field_assignment<Field> {
-    constexpr static typename Field::value_type value = val;
+    using value_type = typename Field::value_type;
+    using value_type_r = typename Field::value_type_r;
+
+    constexpr auto operator() (const value_type_r register_value) const
+    -> value_type_r {
+        return Field::to_reg(register_value, value);
+    }
+
+// private:
+    constexpr static value_type value = val;
 };
 
 template <typename Field> struct field_assignment_rt : field_assignment<Field> {
     using value_type = typename Field::value_type;
+    using value_type_r = typename Field::value_type_r;
 
-    constexpr explicit field_assignment_rt(value_type v) : value{v} {}
+    constexpr explicit field_assignment_rt(const value_type v) : value{v} {}
+    
+    constexpr auto operator() (const value_type_r register_value) const
+    -> value_type_r {
+        return Field::to_reg(register_value, value);
+    }
 
-    value_type value;
+// private:
+    const value_type value;
 };
 
 template <typename F, typename FieldOp, typename Field0, typename... Fields>
 struct field_assignment_invocable : field_assignment<FieldOp> {
+    using value_type = typename FieldOp::value_type;
+    using value_type_r = typename FieldOp::value_type_r;
     using fields = std::tuple<Field0, Fields...>;
-
-    explicit field_assignment_invocable(F f) : lambda_{f} {}
-
-    constexpr auto operator()(typename Field0::value_type f0,
-                              typename Fields::value_type... fs) ->
-        typename FieldOp::value_type {
-        return lambda_(f0, fs...);
+    
+    constexpr explicit field_assignment_invocable(F f) : lambda_{f} {}
+    
+    constexpr auto operator() (const value_type_r register_value) const
+    -> value_type_r {
+        return FieldOp::to_reg(register_value, 
+            invoke(register_value, fields{}, 
+                std::make_index_sequence<1 + sizeof...(Fields)>{}));
     }
-
+            
+private:
+    template <typename FieldsTuple, std::size_t... Idx>
+    constexpr auto invoke(const value_type_r value,
+        const FieldsTuple tup,
+        const std::index_sequence<Idx...>) const
+    -> value_type {
+        return lambda_(
+            std::tuple_element_t<Idx, FieldsTuple>::to_field(value)...);
+        }
     F lambda_;
 };
 
@@ -46,16 +74,14 @@ template <typename Field> struct unsafe_field_operations_handler {
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto const &rhs) const
         -> field_assignment_rt<Field> {
-        static_assert(Field::access != access_type::RO,
-                      "cannot write read-only field");
+        static_assert(Field::writable(), "cannot write read-only field");
 
         return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(auto &&rhs) const -> field_assignment_rt<Field> {
-        static_assert(Field::access != access_type::RO,
-                      "cannot write read-only field");
+        static_assert(Field::writable(), "cannot write read-only field");
 
         return field_assignment_rt<Field>{static_cast<value_type>(rhs)};
     }
@@ -63,6 +89,30 @@ template <typename Field> struct unsafe_field_operations_handler {
     // TODO: add compile time unsafe operations
 };
 
+template <typename L, typename R>
+struct pipe {
+public:
+    constexpr pipe(const L lhs, const R rhs)
+      : lhs_{lhs}, rhs_{rhs}
+    {}
+    
+    constexpr auto operator() (const auto ...vs) const {
+        return call_rhs(lhs_(vs...));
+    }
+
+private:
+    constexpr auto call_rhs(auto && ...vs) const {
+        return rhs_(std::forward<decltype(vs)>(vs)...);
+    }
+
+    L lhs_;
+    R rhs_;
+};
+
+template <typename L, typename R>
+constexpr auto operator| (L l, R r) {
+    return pipe<L, R>{l, r};
+}
 } // namespace detail
 
 // reg operations
@@ -192,6 +242,38 @@ constexpr auto get_ro_mask(reg const &r) -> T {
     auto tup = reflect::to_tuple(r);
     constexpr std::size_t tup_size = std::tuple_size_v<decltype(tup)>;
     return get_ro_mask_helper(tup, std::make_index_sequence<tup_size>{});
+}
+
+template <typename T, typename Tuple, std::size_t... Idx>
+constexpr auto evaluate_chain_helper(const T value, const Tuple ops,
+                                    std::index_sequence<Idx...>) -> T {
+    return (std::get<Idx>(ops) | ...)(value);
+}
+
+template <typename T, typename... Ops>
+constexpr auto evaluate_chain(const T value, const std::tuple<Ops...> ops) -> T {
+    return evaluate_chain_helper(value, ops,
+        std::make_index_sequence<sizeof...(Ops)>{});
+}
+
+template <typename T>
+constexpr auto evaluate_chain(const T value, const std::tuple<> tup) -> T {
+    return value;
+}
+
+template <typename... Ops, std::size_t... Idx>
+constexpr auto chain_helper(std::tuple<Ops...> const &ops,
+                            std::index_sequence<Idx...>) {
+    return (std::get<Idx>(ops) | ...);
+}
+
+template <typename... Ops>
+constexpr auto chain(std::tuple<Ops...> const &ops) {
+    return chain_helper(ops, std::make_index_sequence<sizeof...(Ops)>{});
+}
+
+constexpr auto chain(std::tuple<> const &tup) {
+    return [] (auto value) { return value; };
 }
 } // namespace detail
 } // namespace ros
