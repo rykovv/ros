@@ -303,6 +303,33 @@ cmake -Bbuild -GNinja
 cmake --build build -t clang-tidy
 ```
 
+### Clang-Format
+
+Requires `clang-format`. Style is defined in [`.clang-format`](.clang-format).
+
+Check formatting (fails if any file is not formatted, changes nothing — this is
+what CI runs):
+
+```bash
+cmake -Bbuild -GNinja
+cmake --build build -t clang-format-check
+```
+
+Apply formatting in place:
+
+```bash
+cmake -Bbuild -GNinja
+cmake --build build -t clang-format
+```
+
+> CI checks with **clang-format-18**. `clang-format` output can differ between
+> major versions, so use the same version locally. If your default
+> `clang-format` is a different version, pin it when configuring:
+>
+> ```bash
+> cmake -Bbuild -GNinja -DCLANG_FORMAT=clang-format-18
+> ```
+
 ### Sanitizers
 
 Build with AddressSanitizer or UndefinedBehaviorSanitizer:
