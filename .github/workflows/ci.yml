@@ -144,6 +144,21 @@ jobs:
       - name: Clang-Tidy
         run: cmake --build ${{ github.workspace }}/build -t clang-tidy
 
+  clang_format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt update && sudo apt install -y ninja-build clang-format-${{ env.DEFAULT_LLVM_VERSION }}
+
+      - name: Configure
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_CXX_STANDARD=${{ env.CXX_STANDARD }}
+
+      - name: Clang-Format
+        run: cmake --build ${{ github.workspace }}/build -t clang-format-check
+
   sanitize:
     runs-on: ubuntu-24.04
     strategy:
@@ -190,7 +205,7 @@ jobs:
 
   all_pass:
     runs-on: ubuntu-24.04
-    needs: [build_and_test, clang_tidy, sanitize, valgrind]
+    needs: [build_and_test, clang_tidy, clang_format, sanitize, valgrind]
     if: ${{ !cancelled() }}
     steps:
       - name: Gate
