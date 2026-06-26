@@ -1,9 +1,10 @@
 #pragma once
 
+#include "mock_bus.hpp"
+
 #include <ros/access.hpp>
 #include <ros/field.hpp>
 #include <ros/reg.hpp>
-#include "mock_bus.hpp"
 
 namespace test {
 
@@ -56,7 +57,7 @@ struct bit_reg : reg<bit_reg, uint8_t, 0x50_addr, mock_bus> {
 // Full-width register (all bits writable)
 struct full_reg : reg<full_reg, uint32_t, 0x60_addr, mock_bus> {
     using reg<full_reg, uint32_t, 0x60_addr, mock_bus>::operator=;
-    
+
     field<full_reg, 31_msb, 0_lsb, access_type::RW> value;
 };
 
@@ -64,14 +65,21 @@ struct full_reg : reg<full_reg, uint32_t, 0x60_addr, mock_bus> {
 struct special_reg : reg<special_reg, uint32_t, 0x70_addr, mock_bus> {
     using reg<special_reg, uint32_t, 0x70_addr, mock_bus>::operator=;
 
-    field<special_reg, 3_msb, 0_lsb, access_type::RC> clear_on_read;    // read-clear
-    field<special_reg, 7_msb, 4_lsb, access_type::RW_0C> clear_on_w0;   // clear on write 0
-    field<special_reg, 11_msb, 8_lsb, access_type::RW_1C> clear_on_w1;  // clear on write 1
-    field<special_reg, 15_msb, 12_lsb, access_type::RW_1S> set_on_w1;   // set on write 1
-    field<special_reg, 19_msb, 16_lsb, access_type::RW_0S> set_on_w0;   // set on write 0
-    field<special_reg, 23_msb, 20_lsb, access_type::RW_1T> toggle_on_w1;// toggle on write 1
-    field<special_reg, 27_msb, 24_lsb, access_type::RS> set_on_read;    // read-set
-    field<special_reg, 31_msb, 28_lsb, access_type::RW_O> write_once;   // read-write once
+    field<special_reg, 3_msb, 0_lsb, access_type::RC>
+        clear_on_read; // read-clear
+    field<special_reg, 7_msb, 4_lsb, access_type::RW_0C>
+        clear_on_w0; // clear on write 0
+    field<special_reg, 11_msb, 8_lsb, access_type::RW_1C>
+        clear_on_w1; // clear on write 1
+    field<special_reg, 15_msb, 12_lsb, access_type::RW_1S>
+        set_on_w1; // set on write 1
+    field<special_reg, 19_msb, 16_lsb, access_type::RW_0S>
+        set_on_w0; // set on write 0
+    field<special_reg, 23_msb, 20_lsb, access_type::RW_1T>
+        toggle_on_w1; // toggle on write 1
+    field<special_reg, 27_msb, 24_lsb, access_type::RS> set_on_read; // read-set
+    field<special_reg, 31_msb, 28_lsb, access_type::RW_O>
+        write_once; // read-write once
 };
 
 // Enum for field assignment testing
@@ -79,7 +87,7 @@ struct enum_reg : reg<enum_reg, uint8_t, 0x80_addr, mock_bus> {
     using reg<enum_reg, uint8_t, 0x80_addr, mock_bus>::operator=;
 
     enum class mode : uint8_t { OFF = 0, LOW = 1, HIGH = 2, TURBO = 3 };
-    
+
     field<enum_reg, 1_msb, 0_lsb, access_type::RW, mode> mode_field;
     field<enum_reg, 7_msb, 2_lsb, access_type::RW> data;
 };
@@ -94,7 +102,7 @@ struct enum_reg : reg<enum_reg, uint8_t, 0x80_addr, mock_bus> {
 struct rw_w1c_reg : reg<rw_w1c_reg, uint8_t, 0xA0_addr, mock_bus> {
     using reg<rw_w1c_reg, uint8_t, 0xA0_addr, mock_bus>::operator=;
 
-    field<rw_w1c_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1c_reg, 3_msb, 0_lsb, access_type::RW> data;
     field<rw_w1c_reg, 7_msb, 4_lsb, access_type::RW_1C> status;
 };
 
@@ -102,7 +110,7 @@ struct rw_w1c_reg : reg<rw_w1c_reg, uint8_t, 0xA0_addr, mock_bus> {
 struct rw_w0s_reg : reg<rw_w0s_reg, uint8_t, 0xA1_addr, mock_bus> {
     using reg<rw_w0s_reg, uint8_t, 0xA1_addr, mock_bus>::operator=;
 
-    field<rw_w0s_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w0s_reg, 3_msb, 0_lsb, access_type::RW> data;
     field<rw_w0s_reg, 7_msb, 4_lsb, access_type::RW_0S> control;
 };
 
@@ -110,7 +118,7 @@ struct rw_w0s_reg : reg<rw_w0s_reg, uint8_t, 0xA1_addr, mock_bus> {
 struct rw_w1t_reg : reg<rw_w1t_reg, uint8_t, 0xA2_addr, mock_bus> {
     using reg<rw_w1t_reg, uint8_t, 0xA2_addr, mock_bus>::operator=;
 
-    field<rw_w1t_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1t_reg, 3_msb, 0_lsb, access_type::RW> data;
     field<rw_w1t_reg, 7_msb, 4_lsb, access_type::RW_1T> toggle;
 };
 
@@ -118,7 +126,7 @@ struct rw_w1t_reg : reg<rw_w1t_reg, uint8_t, 0xA2_addr, mock_bus> {
 struct rw_w0c_reg : reg<rw_w0c_reg, uint8_t, 0xA3_addr, mock_bus> {
     using reg<rw_w0c_reg, uint8_t, 0xA3_addr, mock_bus>::operator=;
 
-    field<rw_w0c_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w0c_reg, 3_msb, 0_lsb, access_type::RW> data;
     field<rw_w0c_reg, 7_msb, 4_lsb, access_type::RW_0C> flags;
 };
 
@@ -126,7 +134,7 @@ struct rw_w0c_reg : reg<rw_w0c_reg, uint8_t, 0xA3_addr, mock_bus> {
 struct rw_w1s_reg : reg<rw_w1s_reg, uint8_t, 0xA4_addr, mock_bus> {
     using reg<rw_w1s_reg, uint8_t, 0xA4_addr, mock_bus>::operator=;
 
-    field<rw_w1s_reg, 3_msb, 0_lsb, access_type::RW>    data;
+    field<rw_w1s_reg, 3_msb, 0_lsb, access_type::RW> data;
     field<rw_w1s_reg, 7_msb, 4_lsb, access_type::RW_1S> sticky;
 };
 

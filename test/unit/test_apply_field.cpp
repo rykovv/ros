@@ -1,13 +1,15 @@
-#include <gtest/gtest.h>
-#include <ros/eval.hpp>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
+
+#include <ros/eval.hpp>
 
 using namespace test;
 using namespace ros;
 using namespace ros::literals;
 
 class ApplyFieldTest : public ::testing::Test {
-protected:
+  protected:
     void SetUp() override { reset_bus(); }
 };
 
@@ -137,9 +139,7 @@ TEST_F(ApplyFieldTest, InvocableWrite_SingleField) {
     constexpr simple_reg r{};
     bus_read_value = 0x03; // low_nibble currently = 3
 
-    eval(r.low_nibble([](uint8_t current) -> uint8_t {
-        return current + 1;
-    }));
+    eval(r.low_nibble([](uint8_t current) -> uint8_t { return current + 1; }));
 
     ASSERT_EQ(bus_log.size(), 2u); // read + write
     // invocable reads current (3), returns 4, written back
@@ -150,9 +150,7 @@ TEST_F(ApplyFieldTest, InvocableWrite_PartialWrite_PreservesOtherFields) {
     constexpr simple_reg r{};
     bus_read_value = 0xA3; // low_nibble = 3, high_nibble = A
 
-    eval(r.low_nibble([](uint8_t current) -> uint8_t {
-        return current + 1;
-    }));
+    eval(r.low_nibble([](uint8_t current) -> uint8_t { return current + 1; }));
 
     ASSERT_EQ(bus_log.size(), 2u);
     // partial write: read 0xA3, invocable returns 3+1=4, high_nibble preserved
@@ -165,7 +163,8 @@ TEST_F(ApplyFieldTest, InvocableWrite_PlusCTWrite_CoversAllRMW) {
 
     eval(r.low_nibble([](uint8_t current) -> uint8_t {
         return current + 1; // 3 + 1 = 4
-    }), r.high_nibble = 0xB_f);
+    }),
+         r.high_nibble = 0xB_f);
 
     ASSERT_EQ(bus_log.size(), 2u); // read + write
     // invocable should read low_nibble as 3, return 4
@@ -173,19 +172,24 @@ TEST_F(ApplyFieldTest, InvocableWrite_PlusCTWrite_CoversAllRMW) {
     EXPECT_EQ(bus_log[1].value, 0xB4u);
 }
 
-TEST_F(ApplyFieldTest, InvocableWrite_MultipleInvocables_LaterSeesEarlierWrite) {
+TEST_F(ApplyFieldTest,
+       InvocableWrite_MultipleInvocables_LaterSeesEarlierWrite) {
     constexpr simple_reg r{};
     bus_read_value = 0x21; // low_nibble = 1, high_nibble = 2
 
-    // Invocables are applied as a sequential chain in argument order, NOT against
-    // a single pre-read snapshot. The 2nd invocable (writing low_nibble) reads
-    // high_nibble, which the 1st invocable has already incremented.
-    eval(r.high_nibble([](uint8_t h) -> uint8_t { return h + 1; }), // high: 2 -> 3
-         r.low_nibble([](uint8_t h) -> uint8_t { return h; },       // low = current high
-                      r.high_nibble));
+    // Invocables are applied as a sequential chain in argument order, NOT
+    // against a single pre-read snapshot. The 2nd invocable (writing
+    // low_nibble) reads high_nibble, which the 1st invocable has already
+    // incremented.
+    eval(r.high_nibble(
+             [](uint8_t h) -> uint8_t { return h + 1; }), // high: 2 -> 3
+         r.low_nibble(
+             [](uint8_t h) -> uint8_t { return h; }, // low = current high
+             r.high_nibble));
 
     ASSERT_EQ(bus_log.size(), 2u);
-    // low reads high AFTER it became 3 -> 0x33 (a snapshot semantics would give 0x32)
+    // low reads high AFTER it became 3 -> 0x33 (a snapshot semantics would give
+    // 0x32)
     EXPECT_EQ(bus_log[1].value, 0x33u);
 }
 
@@ -193,8 +197,9 @@ TEST_F(ApplyFieldTest, InvocableWrite_MultipleInvocables_OrderDependent) {
     constexpr simple_reg r{};
     bus_read_value = 0x21; // low_nibble = 1, high_nibble = 2
 
-    // Same two invocables, reversed order: low_nibble's invocable now runs first,
-    // so it reads high_nibble's original value (2) before it is incremented.
+    // Same two invocables, reversed order: low_nibble's invocable now runs
+    // first, so it reads high_nibble's original value (2) before it is
+    // incremented.
     eval(r.low_nibble([](uint8_t h) -> uint8_t { return h; }, r.high_nibble),
          r.high_nibble([](uint8_t h) -> uint8_t { return h + 1; }));
 
@@ -221,7 +226,8 @@ TEST_F(ApplyFieldTest, InvocableWrite_SpecialFieldsPreserveIdentity) {
 
     eval(r.data([](uint8_t current) -> uint8_t {
         return current + 1; // 3 + 1 = 4
-    }), r.status = 0_f);
+    }),
+         r.status = 0_f);
 
     ASSERT_EQ(bus_log.size(), 2u);
     // data should be 4 (from invocable), status identity for RW_1C is 0

@@ -30,7 +30,8 @@ struct bus {
     template <typename T, typename Addr> static auto read(Addr address) -> T;
     template <typename T, typename Addr> static void write(T val, Addr address);
     template <typename... AdjacentAddrs, typename... ValueTypes>
-    static auto read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
+    static auto
+    read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
     template <typename... AdjacentAddrs, typename... ValueTypes>
     static void write(std::tuple<AdjacentAddrs...> addrs,
                       std::tuple<ValueTypes...> values);

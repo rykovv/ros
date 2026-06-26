@@ -1,5 +1,6 @@
 // Expected: static_assert failure — assigned value type is too wide
 #include "test_registers.hpp"
+
 #include <ros/eval.hpp>
 
 int main() {

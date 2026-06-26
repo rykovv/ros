@@ -14,16 +14,18 @@ namespace ros {
 template <typename reg_derived, detail::msb Msb, detail::lsb Lsb,
           access_type at,
           detail::field_type value_type_f = typename reg_derived::value_type>
-    requires detail::field_selectable<detail::unwrap_enum_t<value_type_f>, Msb, Lsb>
+    requires detail::field_selectable<detail::unwrap_enum_t<value_type_f>, Msb,
+                                      Lsb>
 struct field {
     using value_type_r = typename reg_derived::value_type;
     using value_type = value_type_f;
     using reg = reg_derived;
     using type = field<reg_derived, Msb, Lsb, at, value_type_f>;
 
-    static_assert(std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits 
-                  <= std::numeric_limits<value_type_r>::digits,
-                  "Field type cannot be wider than the base register type");
+    static_assert(
+        std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits <=
+            std::numeric_limits<value_type_r>::digits,
+        "Field type cannot be wider than the base register type");
 
     constexpr static access_type access = at;
 
@@ -31,8 +33,10 @@ struct field {
         return Msb.value == Lsb.value ? 1 : Msb.value - Lsb.value + 1;
     }();
 
-    static_assert(std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits
-                  >= length, "Field length wider than the field type");
+    static_assert(
+        std::numeric_limits<detail::unwrap_enum_t<value_type>>::digits >=
+            length,
+        "Field length wider than the field type");
 
     constexpr static value_type_r mask = []() -> value_type_r {
         if (Msb.value != Lsb.value) {
@@ -125,8 +129,8 @@ struct field {
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= Msb.value - Lsb.value)
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-    constexpr auto operator=(T const &rhs) const
-        -> detail::field_assignment_rt<field> {
+    constexpr auto
+    operator=(T const &rhs) const -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<T>::digits,
@@ -140,8 +144,8 @@ struct field {
                  std::is_convertible_v<T, value_type> &&
                  std::numeric_limits<T>::digits >= Msb.value - Lsb.value)
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-    constexpr auto operator=(T &&rhs) const
-        -> detail::field_assignment_rt<field> {
+    constexpr auto
+    operator=(T &&rhs) const -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<T>::digits,
@@ -153,8 +157,8 @@ struct field {
     template <typename EnumT>
         requires(std::is_enum_v<EnumT>)
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-    constexpr auto operator=(EnumT val) const
-        -> detail::field_assignment_rt<field> {
+    constexpr auto
+    operator=(EnumT val) const -> detail::field_assignment_rt<field> {
         static_assert(writable(), "Cannot write non-writable field");
         static_assert(
             std::numeric_limits<value_type_r>::digits >=
@@ -185,14 +189,14 @@ struct field {
             f};
     }
 
-    constexpr static auto to_reg(value_type_r reg_value, value_type value) 
-        -> value_type_r {
+    constexpr static auto to_reg(value_type_r reg_value,
+                                 value_type value) -> value_type_r {
         return (reg_value & ~mask) |
                (static_cast<value_type_r>(value) << Lsb.value) & mask;
     }
 
     constexpr static auto to_field(value_type_r value) -> value_type {
-        // this can be safely ignored because the value cannot be a signed int, 
+        // this can be safely ignored because the value cannot be a signed int,
         // see field_selectable concept.
         // NOLINTNEXTLINE(hicpp-signed-bitwise)
         return (value & mask) >> Lsb.value;
@@ -220,11 +224,17 @@ struct field {
                 detail::to_underlying(access_type::R)) != 0;
     }
 
-    constexpr static auto readwritable() -> bool { return writable() && readable(); }
+    constexpr static auto readwritable() -> bool {
+        return writable() && readable();
+    }
 
-    constexpr static auto writeonly() -> bool { return writable() && not readable(); }
+    constexpr static auto writeonly() -> bool {
+        return writable() && not readable();
+    }
 
-    constexpr static auto readonly() -> bool { return not writable() && readable(); }
+    constexpr static auto readonly() -> bool {
+        return not writable() && readable();
+    }
 
     constexpr static auto identity() -> value_type_r {
         if constexpr (access == access_type::RW_0C ||
@@ -239,13 +249,9 @@ struct field {
         }
     }
 
-    constexpr static auto msb() -> decltype(Msb.value) { 
-        return Msb.value; 
-    }
+    constexpr static auto msb() -> decltype(Msb.value) { return Msb.value; }
 
-    constexpr static auto lsb() -> decltype(Lsb.value) { 
-        return Lsb.value; 
-    }
+    constexpr static auto lsb() -> decltype(Lsb.value) { return Lsb.value; }
 
     constexpr static detail::unsafe_field_operations_handler<field> unsafe{};
 };

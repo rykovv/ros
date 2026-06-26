@@ -2,7 +2,6 @@
 
 #include <type_traits>
 
-
 namespace ros::detail {
 // available as std::to_underlying in C++23
 template <typename Enum>

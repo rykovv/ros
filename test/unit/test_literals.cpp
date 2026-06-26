@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <ros/literals.hpp>
 
 using namespace ros::literals;

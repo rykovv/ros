@@ -29,9 +29,9 @@ struct reg {
 
     template <typename U, U val>
         requires(std::is_convertible_v<U, value_type>)
-    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature, readability-const-return-type)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr auto operator=(detail::register_value<U, val>) const
-        -> detail::register_assignment_ct<reg, val> const {
+        -> detail::register_assignment_ct<reg, val> {
         static_assert(static_cast<value_type>(val & reg::ro_mask) == 0,
                       "Attempt to assign read-only bits");
         return detail::register_assignment_ct<reg, val>{};
@@ -40,8 +40,8 @@ struct reg {
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-    constexpr auto operator=(U const &rhs) const
-        -> detail::register_assignment_rt<reg> {
+    constexpr auto
+    operator=(U const &rhs) const -> detail::register_assignment_rt<reg> {
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<U>::digits,
                       "Unsafe assignment. Assigned value type is too wide.");
@@ -59,8 +59,8 @@ struct reg {
     template <typename U>
         requires std::integral<U> && std::is_convertible_v<U, value_type>
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-    constexpr auto operator=(U &&rhs) const
-        -> detail::register_assignment_rt<reg> {
+    constexpr auto
+    operator=(U &&rhs) const -> detail::register_assignment_rt<reg> {
         static_assert(std::numeric_limits<value_type>::digits >=
                           std::numeric_limits<U>::digits,
                       "Unsafe assignment. Assigned value type is too wide.");
@@ -83,11 +83,10 @@ struct reg {
     template <typename F, typename RegOpsHandlerT0, typename... RegOpsHandlerTs>
         requires std::invocable<F, typename RegOpsHandlerT0::reg::value_type,
                                 typename RegOpsHandlerTs::reg::value_type...>
-    constexpr auto operator()(F f, RegOpsHandlerT0 rh0,
-                              RegOpsHandlerTs... rhs) const
-        -> detail::register_assignment_invocable<
-            F, reg, typename RegOpsHandlerT0::reg,
-            typename RegOpsHandlerTs::reg...> {
+    constexpr auto operator()(F f, RegOpsHandlerT0 rh0, RegOpsHandlerTs... rhs)
+        const -> detail::register_assignment_invocable<
+                  F, reg, typename RegOpsHandlerT0::reg,
+                  typename RegOpsHandlerTs::reg...> {
         return detail::register_assignment_invocable<
             F, reg, typename RegOpsHandlerT0::reg,
             typename RegOpsHandlerTs::reg...>{f};

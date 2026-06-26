@@ -8,11 +8,9 @@ using namespace ros;
 using namespace ros::literals;
 
 struct dummy_bus {
-    template <typename T, typename Addr>
-    static T read(Addr) { return T{}; }
+    template <typename T, typename Addr> static T read(Addr) { return T{}; }
 
-    template <typename T, typename Addr>
-    static void write(T, Addr) {}
+    template <typename T, typename Addr> static void write(T, Addr) {}
 };
 
 struct rw_reg : reg<rw_reg, uint8_t, 0x10_addr, dummy_bus> {
@@ -40,7 +38,7 @@ struct ro_reg : reg<ro_reg, uint32_t, 0x30_addr, dummy_bus> {
 
 struct wo_reg : reg<wo_reg, uint32_t, 0x40_addr, dummy_bus> {
     using reg<wo_reg, uint32_t, 0x40_addr, dummy_bus>::operator=;
-    
+
     field<wo_reg, 7_msb, 0_lsb, access_type::WO> byte0;
     field<wo_reg, 15_msb, 8_lsb, access_type::WO> byte1;
 };

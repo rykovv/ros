@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace test;
 using namespace ros;
@@ -44,7 +45,8 @@ TEST(Constexpr, RegWritableMask) {
     static_assert(simple_reg::writable_mask == 0xFF);
     static_assert(full_reg::writable_mask == 0xFFFFFFFF);
     static_assert(ro_reg::writable_mask == 0);
-    static_assert(special_reg::writable_mask != 0); // has writable special fields
+    static_assert(special_reg::writable_mask !=
+                  0); // has writable special fields
 }
 
 TEST(Constexpr, RegRmwMask) {
@@ -52,7 +54,7 @@ TEST(Constexpr, RegRmwMask) {
     static_assert(simple_reg::rmw_mask == 0xFF);
     static_assert(special_reg::rmw_mask == 0);        // no plain RW
     static_assert(rw_w1c_reg::rmw_mask == 0x0F);      // only data[3:0]
-    static_assert(rw_w1c_reg::writable_mask == 0xFF);  // both fields writable
+    static_assert(rw_w1c_reg::writable_mask == 0xFF); // both fields writable
 }
 
 TEST(Constexpr, RegProperties) {

@@ -23,22 +23,26 @@ inline void reset_bus() {
 }
 
 struct mock_bus {
-    template <typename T, typename Addr>
-    static auto read(Addr address) -> T {
-        bus_log.push_back({bus_event::type::read, static_cast<std::size_t>(address), bus_read_value});
+    template <typename T, typename Addr> static auto read(Addr address) -> T {
+        bus_log.push_back({bus_event::type::read,
+                           static_cast<std::size_t>(address), bus_read_value});
         return static_cast<T>(bus_read_value);
     }
 
     template <typename T, typename Addr>
     static void write(T val, Addr address) {
-        bus_log.push_back({bus_event::type::write, static_cast<std::size_t>(address), static_cast<std::uint32_t>(val)});
+        bus_log.push_back({bus_event::type::write,
+                           static_cast<std::size_t>(address),
+                           static_cast<std::uint32_t>(val)});
     }
 
     template <typename... AdjacentAddrs, typename... ValueTypes>
-    static auto read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
+    static auto
+    read(std::tuple<AdjacentAddrs...> addrs) -> std::tuple<ValueTypes...>;
 
     template <typename... AdjacentAddrs, typename... ValueTypes>
-    static void write(std::tuple<AdjacentAddrs...> addrs, std::tuple<ValueTypes...> values);
+    static void write(std::tuple<AdjacentAddrs...> addrs,
+                      std::tuple<ValueTypes...> values);
 };
 
 } // namespace test

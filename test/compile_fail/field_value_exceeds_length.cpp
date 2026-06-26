@@ -1,5 +1,7 @@
-// Expected: static_assert failure — assigned value greater than the field length
+// Expected: static_assert failure — assigned value greater than the field
+// length
 #include "test_registers.hpp"
+
 #include <ros/eval.hpp>
 
 int main() {

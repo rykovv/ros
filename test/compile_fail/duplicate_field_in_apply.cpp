@@ -1,5 +1,6 @@
 // Expected: constraint failure — one_assignment_per_field violated
 #include "test_registers.hpp"
+
 #include <ros/eval.hpp>
 
 int main() {

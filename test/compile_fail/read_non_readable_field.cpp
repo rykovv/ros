@@ -1,5 +1,6 @@
 // Expected: static_assert failure — cannot read non-readable field (WO)
 #include "test_registers.hpp"
+
 #include <ros/eval.hpp>
 
 int main() {

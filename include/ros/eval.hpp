@@ -9,9 +9,10 @@ namespace ros {
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops) -> detail::return_reads_t<
-    decltype(filter::tuple_filter<detail::is_field_read>(
-        std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops)
+    -> detail::return_reads_t<
+        decltype(filter::tuple_filter<detail::is_field_read>(
+            std::make_tuple(op, ops...)))> {
     using value_type = typename Op::type::value_type_r;
     using field_type = typename Op::type;
     using reg = typename Op::type::reg;
@@ -59,11 +60,8 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         }
 
         // compose monadic chain
-        const auto chain
-            = detail::chain(writes_inv)
-            | detail::chain(writes_ct)
-            | detail::chain(writes_rt)
-            ;
+        auto const chain = detail::chain(writes_inv) |
+                           detail::chain(writes_ct) | detail::chain(writes_rt);
 
         value = chain(value);
 
@@ -72,9 +70,8 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
         // to avoid unintended side effect, preserve the identity for
         // special fields so no side effect is triggered
         constexpr auto total_write_mask = rmw_mask | write_mask;
-        value = (reg::identity & ~total_write_mask) 
-              | (value & total_write_mask)
-              ;
+        value =
+            (reg::identity & ~total_write_mask) | (value & total_write_mask);
 
         bus::write(value, reg::address::value);
     } else /* if (return_reads) */ {
@@ -98,9 +95,10 @@ auto eval(Op op, Ops... ops) -> detail::return_reads_t<
 
 template <typename Op, typename... Ops>
     requires detail::register_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops) -> detail::return_reads_t<
-    decltype(filter::tuple_filter<detail::is_register_read>(
-        std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops)
+    -> detail::return_reads_t<
+        decltype(filter::tuple_filter<detail::is_register_read>(
+            std::make_tuple(op, ops...)))> {
     // 1. evaluate reads if any (may make sense to sort)
     // 2. evaluate invocable writes (doesn't make sense to sort. the point of
     // sorting
