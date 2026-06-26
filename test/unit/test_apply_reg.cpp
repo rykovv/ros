@@ -1,13 +1,15 @@
-#include <gtest/gtest.h>
-#include <ros/eval.hpp>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
+
+#include <ros/eval.hpp>
 
 using namespace test;
 using namespace ros;
 using namespace ros::literals;
 
 class ApplyRegTest : public ::testing::Test {
-protected:
+  protected:
     void SetUp() override { reset_bus(); }
 };
 
@@ -59,7 +61,8 @@ TEST_F(ApplyRegTest, RuntimeWrite_MaskedByHandler) {
 
     ASSERT_EQ(bus_log.size(), 1u);
     // mask_handler returns static_cast<T>(v & layout), layout = 0xFFFF
-    EXPECT_EQ(bus_log[0].value, static_cast<uint32_t>(0xFFFF & mixed_reg::writable_mask));
+    EXPECT_EQ(bus_log[0].value,
+              static_cast<uint32_t>(0xFFFF & mixed_reg::writable_mask));
 }
 
 TEST_F(ApplyRegTest, RuntimeWrite_NoRoBits_NoMasking) {
@@ -105,9 +108,7 @@ TEST_F(ApplyRegTest, InvocableWrite_Self) {
     constexpr simple_reg r{};
     bus_read_value = 0x0F;
 
-    eval(r([](uint8_t current) -> uint8_t {
-        return current | 0xF0;
-    }));
+    eval(r([](uint8_t current) -> uint8_t { return current | 0xF0; }));
 
     // invocable reads current register, calls lambda, writes result
     ASSERT_EQ(bus_log.size(), 2u);
@@ -152,8 +153,8 @@ TEST_F(ApplyRegTest, WritesBeforeReads_Ordering) {
 
     auto v1 = eval(r1, r2 = 0xABCD_r);
 
-    // reads first, then invocable writes, then CT writes, then RT writes evaluated last
-    // r1 read should happen, then r2 write
+    // reads first, then invocable writes, then CT writes, then RT writes
+    // evaluated last r1 read should happen, then r2 write
     EXPECT_EQ(bus_log.back().op, bus_event::type::write);
     EXPECT_EQ(v1, 0x42u);
 }

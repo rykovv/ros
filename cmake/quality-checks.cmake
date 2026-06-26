@@ -19,6 +19,29 @@ if(RUN_CLANG_TIDY)
     )
 endif()
 
+find_program(CLANG_FORMAT NAMES clang-format clang-format-21 clang-format-20
+                                clang-format-19 clang-format-18)
+if(CLANG_FORMAT)
+    file(GLOB_RECURSE ROS_FORMAT_FILES
+        ${CMAKE_SOURCE_DIR}/include/*.hpp
+        ${CMAKE_SOURCE_DIR}/test/*.hpp
+        ${CMAKE_SOURCE_DIR}/test/*.cpp)
+
+    # Rewrite sources in place to match .clang-format
+    add_custom_target(clang-format
+        COMMAND ${CLANG_FORMAT} -i --style=file ${ROS_FORMAT_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Formatting sources with clang-format"
+    )
+
+    # Fail (non-zero exit) if any source is not formatted; changes nothing
+    add_custom_target(clang-format-check
+        COMMAND ${CLANG_FORMAT} --dry-run --Werror --style=file ${ROS_FORMAT_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Checking formatting with clang-format"
+    )
+endif()
+
 find_program(VALGRIND_EXECUTABLE NAMES valgrind)
 if(VALGRIND_EXECUTABLE)
     add_custom_target(valgrind

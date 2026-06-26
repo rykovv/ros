@@ -1,5 +1,7 @@
-// Expected: static_assert failure — attempt to assign read-only bits at compile time
+// Expected: static_assert failure — attempt to assign read-only bits at compile
+// time
 #include "test_registers.hpp"
+
 #include <ros/eval.hpp>
 
 int main() {

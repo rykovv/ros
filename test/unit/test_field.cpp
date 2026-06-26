@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace test;
 using namespace ros;

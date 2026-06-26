@@ -1,13 +1,15 @@
-#include <gtest/gtest.h>
-#include <ros/eval.hpp>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
+
+#include <ros/eval.hpp>
 
 using namespace test;
 using namespace ros;
 using namespace ros::literals;
 
 class AccessTypeTest : public ::testing::Test {
-protected:
+  protected:
     void SetUp() override { reset_bus(); }
 };
 
@@ -22,16 +24,17 @@ TEST_F(AccessTypeTest, RmwMask_OnlyPlainRW) {
     EXPECT_EQ(rw_w1t_reg::rmw_mask, 0x0Fu);
     EXPECT_EQ(rw_w0c_reg::rmw_mask, 0x0Fu);
     EXPECT_EQ(rw_w1s_reg::rmw_mask, 0x0Fu);
-    EXPECT_EQ(rw_rc_reg::rmw_mask,  0x0Fu);
+    EXPECT_EQ(rw_rc_reg::rmw_mask, 0x0Fu);
     EXPECT_EQ(special_only_reg::rmw_mask, 0u); // no plain RW at all
 }
 
 TEST_F(AccessTypeTest, WritableMask_IncludesAllWritable) {
-    // writable_mask includes every field that can be written (RW + all special writable)
+    // writable_mask includes every field that can be written (RW + all special
+    // writable)
     EXPECT_EQ(rw_w1c_reg::writable_mask, 0xFFu);
     EXPECT_EQ(rw_w0s_reg::writable_mask, 0xFFu);
     EXPECT_EQ(rw_w1t_reg::writable_mask, 0xFFu);
-    EXPECT_EQ(rw_rc_reg::writable_mask,  0x0Fu); // RC is not writable
+    EXPECT_EQ(rw_rc_reg::writable_mask, 0x0Fu); // RC is not writable
     EXPECT_EQ(special_only_reg::writable_mask, 0xFFu);
 }
 
@@ -80,7 +83,7 @@ TEST_F(AccessTypeTest, PartialRW_SubsetWritten_ReadsOnce) {
     eval(r.low_nibble = 5_f);
 
     ASSERT_EQ(bus_log.size(), 2u);
-    EXPECT_EQ(bus_log[0].op, bus_event::type::read);  // RMW read
+    EXPECT_EQ(bus_log[0].op, bus_event::type::read); // RMW read
     EXPECT_EQ(bus_log[1].op, bus_event::type::write);
     EXPECT_EQ(bus_log[1].value, 0xF5u); // preserved high nibble + new low
 }
@@ -136,7 +139,8 @@ TEST_F(AccessTypeTest, RC_FieldPresent_WritingRW_NoRead) {
 
 TEST_F(AccessTypeTest, RW1C_GetsZero_NotReadBack) {
     // RW_1C: writing 1 clears bits → identity = 0 (writing 0 is no-op)
-    // If read-back (0xF0) were written, bits 4-7 would be unintentionally cleared.
+    // If read-back (0xF0) were written, bits 4-7 would be unintentionally
+    // cleared.
     constexpr rw_w1c_reg r{};
     bus_read_value = 0xFF; // HW has 0xF in status[7:4]
 
@@ -150,7 +154,8 @@ TEST_F(AccessTypeTest, RW1C_GetsZero_NotReadBack) {
 
 TEST_F(AccessTypeTest, RW0S_GetsMask_NotReadBack) {
     // RW_0S: writing 0 sets bits → identity = mask (writing 1 is no-op)
-    // If read-back (0x00 in control) were written, bits would be unintentionally set.
+    // If read-back (0x00 in control) were written, bits would be
+    // unintentionally set.
     constexpr rw_w0s_reg r{};
     bus_read_value = 0x0F; // HW has 0x0 in control[7:4]
 
@@ -254,7 +259,8 @@ TEST_F(AccessTypeTest, RW1C_DirectWrite) {
     ASSERT_EQ(bus_log.size(), 2u);
     EXPECT_EQ(bus_log[0].op, bus_event::type::read);
     EXPECT_EQ(bus_log[1].op, bus_event::type::write);
-    // data[3:0] = read-back 0xB (plain RW → preserved), status[7:4] = 0xF (user value)
+    // data[3:0] = read-back 0xB (plain RW → preserved), status[7:4] = 0xF (user
+    // value)
     EXPECT_EQ(bus_log[1].value & 0x0Fu, 0x0Bu);
     EXPECT_EQ(bus_log[1].value & 0xF0u, 0xF0u);
 }
@@ -326,7 +332,8 @@ TEST_F(AccessTypeTest, SpecialOnly_WriteOne_IdentityForOther) {
 }
 
 TEST_F(AccessTypeTest, SpecialOnly_WriteBoth_NoRead) {
-    // Writing both fields → no read needed (rmw_mask = 0 → always "full coverage")
+    // Writing both fields → no read needed (rmw_mask = 0 → always "full
+    // coverage")
     constexpr special_only_reg r{};
 
     eval(r.clear_bits = 0xA_f, r.set_bits = 0x5_f);

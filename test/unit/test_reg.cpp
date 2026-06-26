@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include "../test_registers.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace test;
 using namespace ros;
@@ -7,27 +8,22 @@ using namespace ros::literals;
 
 // --- Layout (now: all field masks OR'd) ---
 
-TEST(RegLayout, AllRW) {
-    EXPECT_EQ(simple_reg::writable_mask, 0xFF);
-}
+TEST(RegLayout, AllRW) { EXPECT_EQ(simple_reg::writable_mask, 0xFF); }
 
 TEST(RegLayout, MixedAccess) {
-    // All field masks OR'd: status|config|command|flags = 0x000F|0x00F0|0x0F00|0xF000
+    // All field masks OR'd: status|config|command|flags =
+    // 0x000F|0x00F0|0x0F00|0xF000
     EXPECT_EQ(mixed_reg::writable_mask, 0xFFF0);
 }
 
-TEST(RegLayout, AllRO) {
-    EXPECT_EQ(ro_reg::writable_mask, 0x0);
-}
+TEST(RegLayout, AllRO) { EXPECT_EQ(ro_reg::writable_mask, 0x0); }
 
 TEST(RegLayout, AllWO) {
     // WO fields now contribute to layout: 0xFF | 0xFF00
     EXPECT_EQ(wo_reg::writable_mask, 0xFFFFu);
 }
 
-TEST(RegLayout, FullWidth) {
-    EXPECT_EQ(full_reg::writable_mask, 0xFFFFFFFF);
-}
+TEST(RegLayout, FullWidth) { EXPECT_EQ(full_reg::writable_mask, 0xFFFFFFFF); }
 
 // --- ro_mask (only RO fields contribute) ---
 
@@ -41,13 +37,9 @@ TEST(RegRoMask, MixedAccess) {
     EXPECT_EQ(mixed_reg::ro_mask, 0x000Fu);
 }
 
-TEST(RegRoMask, AllRO) {
-    EXPECT_EQ(ro_reg::ro_mask, 0xFFFFu);
-}
+TEST(RegRoMask, AllRO) { EXPECT_EQ(ro_reg::ro_mask, 0xFFFFu); }
 
-TEST(RegRoMask, AllWO) {
-    EXPECT_EQ(wo_reg::ro_mask, 0u);
-}
+TEST(RegRoMask, AllWO) { EXPECT_EQ(wo_reg::ro_mask, 0u); }
 
 // --- physically_readable ---
 
@@ -55,9 +47,7 @@ TEST(RegPhysicallyReadable, AllRW) {
     EXPECT_TRUE(simple_reg::physically_readable);
 }
 
-TEST(RegPhysicallyReadable, AllRO) {
-    EXPECT_TRUE(ro_reg::physically_readable);
-}
+TEST(RegPhysicallyReadable, AllRO) { EXPECT_TRUE(ro_reg::physically_readable); }
 
 TEST(RegPhysicallyReadable, AllWO) {
     EXPECT_FALSE(wo_reg::physically_readable);
@@ -96,9 +86,7 @@ TEST(RegRmwMask, MixedAccess) {
     EXPECT_EQ(mixed_reg::rmw_mask, 0xF0F0u);
 }
 
-TEST(RegRmwMask, AllRO) {
-    EXPECT_EQ(ro_reg::rmw_mask, 0u);
-}
+TEST(RegRmwMask, AllRO) { EXPECT_EQ(ro_reg::rmw_mask, 0u); }
 
 TEST(RegRmwMask, AllWO) {
     // WO is not plain RW → rmw_mask = 0
