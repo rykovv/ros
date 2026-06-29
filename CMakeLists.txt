@@ -13,6 +13,12 @@ if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 20)
 endif()
 
+include(cmake/get_cpm.cmake)
+
+cpmaddpackage("gh:boostorg/mp11#boost-1.70.0")
+
+target_link_libraries(ros INTERFACE boost_mp11)
+
 target_sources(
 	ros
 	INTERFACE FILE_SET
