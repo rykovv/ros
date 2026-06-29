@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/mp11.hpp>
+
 #include <ros/field.hpp>
 #include <ros/filter.hpp>
 #include <ros/reg.hpp>
@@ -9,10 +11,8 @@ namespace ros {
 
 template <typename Op, typename... Ops>
     requires detail::field_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_field_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    boost::mp11::mp_filter<detail::is_field_read, std::tuple<Op, Ops...>>> {
     using value_type = typename Op::type::value_type_r;
     using field_type = typename Op::type;
     using reg = typename Op::type::reg;
@@ -95,10 +95,8 @@ auto eval(Op op, Ops... ops)
 
 template <typename Op, typename... Ops>
     requires detail::register_constraints<Op, Ops...>
-auto eval(Op op, Ops... ops)
-    -> detail::return_reads_t<
-        decltype(filter::tuple_filter<detail::is_register_read>(
-            std::make_tuple(op, ops...)))> {
+auto eval(Op op, Ops... ops) -> detail::return_reads_t<
+    boost::mp11::mp_filter<detail::is_register_read, std::tuple<Op, Ops...>>> {
     // 1. evaluate reads if any (may make sense to sort)
     // 2. evaluate invocable writes (doesn't make sense to sort. the point of
     // sorting
