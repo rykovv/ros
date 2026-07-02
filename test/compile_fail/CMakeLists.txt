@@ -6,6 +6,7 @@ set(COMPILE_FAIL_TESTS
     write_non_writable_field
     read_non_readable_field
     duplicate_field_in_apply
+    duplicate_register_in_apply
     register_value_too_wide
 )
 
